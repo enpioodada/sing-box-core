@@ -419,7 +419,7 @@ jobs:
           overwrite: true
           body: " # 📝 Release Notes 
           
-[sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 1.9.3 <br/> Alpha 版更新至 1.10.0-alpha.29 <br/> [PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核更新至 1.10.0-alpha.29-067c81a7"
+1.[sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 1.9.3 <br/> 2.Alpha 版更新至 1.10.0-alpha.29 <br/> 3.[PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核更新至 1.10.0-alpha.29-067c81a7"
           file_glob: true
           file: ./sing-box/*
 
