@@ -438,7 +438,7 @@ jobs:
           git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
           git push -f -u origin sing-box
 
-      - name: Update GitHub Profile README
+      - name: Update README
         uses: mnjirjak/github-update-readme@v1.4.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -457,5 +457,5 @@ curl -L https://github.com/enpioodada/singbox-tools/raw/main/sing-box-puernya/si
 
 ## Changelog <br/>
 
-* [sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 ${{ needs.release.outputs.release_version }} <br/>Alpha 版更新至 ${{ needs.alpha.outputs.alpha_version }}<br/> [PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核更新至 ${{ needs.puernya.outputs.puernya_version }}
+* [sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 ${{ needs.release.outputs.release_version }} <br/>* Alpha 版更新至 ${{ needs.alpha.outputs.alpha_version }}<br/>*  [PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核更新至 ${{ needs.puernya.outputs.puernya_version }}
                    "
