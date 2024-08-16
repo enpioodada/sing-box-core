@@ -2,7 +2,7 @@ name: Update sing-box
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 19 * * *"
+    - cron: "0 */6 * * *"
   push:
     branches:
       - main
