@@ -417,7 +417,13 @@ jobs:
           release_name: sing-box
           tag: sing-box
           overwrite: true
-          body: "[sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 ${{ needs.release.outputs.release_version }}、Alpha 版更新至 ${{ needs.alpha.outputs.alpha_version }}和 [PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核更新至 ${{ needs.puernya.outputs.puernya_version }}"
+          body: " ** 📝 Release Notes**
+
+---
+
+* [sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 ${{ needs.release.outputs.release_version }}
+* Alpha 版更新至 ${{ needs.alpha.outputs.alpha_version }}
+* [PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核更新至 ${{ needs.puernya.outputs.puernya_version }}"
           file_glob: true
           file: ./sing-box/*
 
@@ -452,5 +458,5 @@ jobs:
                    ```
                    
                    <br/> ## Sing-Box核心更新 <br/>
-                   **[sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 1.9.3 <br/>Alpha 版更新至 1.10.0-alpha.29<br/> [PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核更新至 1.10.0-alpha.29-067c81a7**
+                   **[sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 ${{ needs.release.outputs.release_version }} <br/>Alpha 版更新至 ${{ needs.alpha.outputs.alpha_version }}<br/> [PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核更新至 ${{ needs.puernya.outputs.puernya_version }}**
                    "
