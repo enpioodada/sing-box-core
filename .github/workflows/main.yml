@@ -1,0 +1,431 @@
+name: Update sing-box
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 19 * * *"
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "README.md"
+      - ".github/workflows/delete-old-workflows.yml"
+      - ".github/workflows/update-clashdashboard.yml"
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.go.outputs.version }}
+    steps:
+      - name: Get `Go` latest version
+        id: go
+        run: |
+          echo version=$(curl -sSL https://raw.githubusercontent.com/actions/go-versions/update-versions-manifest-file/versions-manifest.json | grep '"version"' | head -1 | awk -F'"' '{print $4}') >> $GITHUB_OUTPUT
+
+  puernya:
+    runs-on: ubuntu-latest
+    needs: go
+    outputs:
+      puernya_version: ${{ steps.puernya.outputs.puernya_version }}
+      puernya_tags: ${{ steps.puernya.outputs.puernya_tags }}
+    steps:
+      - name: Checkout `building`
+        uses: actions/checkout@v4
+        with:
+          repository: PuerNya/sing-box
+          ref: building
+          fetch-depth: 0
+
+      - name: setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ needs.go.outputs.version }}
+
+      - name: Get `PuerNya` version
+        id: puernya
+        run: |
+          git remote add sekai https://github.com/SagerNet/sing-box.git
+          git fetch --tags sekai
+          puernya_version=$(CGO_ENABLED=0 go run ./cmd/internal/read_tag)
+          echo puernya_version=$puernya_version >> $GITHUB_OUTPUT
+          echo puernya_tags=with_gvisor,with_dhcp,with_wireguard,with_reality_server,with_clash_api,with_quic,with_utls,with_ech,with_grpc >> $GITHUB_OUTPUT
+
+  puernya_cross:
+    strategy:
+      matrix:
+        include:
+          # linux
+          - name: linux-amd64
+            goos: linux
+            goarch: amd64
+            goamd64: v1
+          - name: linux-amd64-v3
+            goos: linux
+            goarch: amd64
+            goamd64: v3
+          - name: linux-armv5
+            goos: linux
+            goarch: arm
+            goarm: 5
+          - name: linux-armv6
+            goos: linux
+            goarch: arm
+            goarm: 6
+          - name: linux-armv7
+            goos: linux
+            goarch: arm
+            goarm: 7
+          - name: linux-arm64
+            goos: linux
+            goarch: arm64
+          - name: linux-mips-softfloat
+            goos: linux
+            goarch: mips
+            gomips: softfloat
+          - name: linux-mipsle-softfloat
+            goos: linux
+            goarch: mipsle
+            gomips: softfloat
+          - name: linux-mipsle-hardfloat
+            goos: linux
+            goarch: mipsle
+            gomips: hardfloat
+
+      fail-fast: false
+    runs-on: ubuntu-latest
+    needs:
+      - go
+      - puernya
+    env:
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+      GOAMD64: ${{ matrix.goamd64 }}
+      GOARM: ${{ matrix.goarm }}
+      GOMIPS: ${{ matrix.gomips }}
+      CGO_ENABLED: 0
+      puernya_TAGS: ${{ needs.puernya.outputs.puernya_tags }}
+      puernya_VERSION: ${{ needs.puernya.outputs.puernya_version }}
+    steps:
+      - name: Checkout `building`
+        uses: actions/checkout@v4
+        with:
+          repository: PuerNya/sing-box
+          ref: building
+          fetch-depth: 1
+
+      - name: Setup `Go`
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ needs.go.outputs.version }}
+
+      - name: Build `PuerNya` core
+        id: build
+        run: go build -v -trimpath -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${puernya_VERSION}' -s -w -buildid=" -tags "${puernya_TAGS}" ./cmd/sing-box
+
+      - name: Upload files to workspace
+        uses: actions/upload-artifact@v4
+        with:
+          name: puernya-${{ matrix.name }}
+          path:
+            sing-box*
+          compression-level: 9
+
+  release:
+    runs-on: ubuntu-latest
+    needs: go
+    outputs:
+      release_version: ${{ steps.release.outputs.release_version }}
+      release_tags: ${{ steps.release.outputs.release_tags }}
+    steps:
+      - name: Checkout `main`
+        uses: actions/checkout@v4
+        with:
+          repository: SagerNet/sing-box
+          ref: main
+          fetch-depth: 0
+
+      - name: setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ needs.go.outputs.version }}
+
+      - name: Get `sing-box` version
+        id: release
+        run: |
+          git remote add sekai https://github.com/SagerNet/sing-box.git
+          git fetch --tags sekai
+          release_version=$(CGO_ENABLED=0 go run ./cmd/internal/read_tag)
+          echo release_version=$release_version >> $GITHUB_OUTPUT
+          echo release_tags=with_gvisor,with_dhcp,with_wireguard,with_reality_server,with_clash_api,with_quic,with_utls,with_ech,with_grpc >> $GITHUB_OUTPUT
+
+  release_cross:
+    strategy:
+      matrix:
+        include:
+          # linux
+          - name: linux-amd64
+            goos: linux
+            goarch: amd64
+            goamd64: v1
+          - name: linux-amd64-v3
+            goos: linux
+            goarch: amd64
+            goamd64: v3
+          - name: linux-armv5
+            goos: linux
+            goarch: arm
+            goarm: 5
+          - name: linux-armv6
+            goos: linux
+            goarch: arm
+            goarm: 6
+          - name: linux-armv7
+            goos: linux
+            goarch: arm
+            goarm: 7
+          - name: linux-arm64
+            goos: linux
+            goarch: arm64
+          - name: linux-mips-softfloat
+            goos: linux
+            goarch: mips
+            gomips: softfloat
+          - name: linux-mipsle-softfloat
+            goos: linux
+            goarch: mipsle
+            gomips: softfloat
+          - name: linux-mipsle-hardfloat
+            goos: linux
+            goarch: mipsle
+            gomips: hardfloat
+
+      fail-fast: false
+    runs-on: ubuntu-latest
+    needs:
+      - go
+      - release
+    env:
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+      GOAMD64: ${{ matrix.goamd64 }}
+      GOARM: ${{ matrix.goarm }}
+      GOMIPS: ${{ matrix.gomips }}
+      CGO_ENABLED: 0
+      release_TAGS: ${{ needs.release.outputs.release_tags }}
+      release_VERSION: ${{ needs.release.outputs.release_version }}
+    steps:
+      - name: Checkout `main`
+        uses: actions/checkout@v4
+        with:
+          repository: SagerNet/sing-box
+          ref: main
+          fetch-depth: 1
+
+      - name: Setup `Go`
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ needs.go.outputs.version }}
+
+      - name: Build `Release` core
+        id: build
+        run: go build -v -trimpath -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${release_VERSION}' -s -w -buildid=" -tags "${release_TAGS}" ./cmd/sing-box
+
+      - name: Upload files to workspace
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.name }}
+          path:
+            sing-box*
+          compression-level: 9
+
+  alpha:
+    runs-on: ubuntu-latest
+    needs: go
+    outputs:
+      alpha_version: ${{ steps.alpha.outputs.alpha_version }}
+      alpha_tags: ${{ steps.alpha.outputs.alpha_tags }}
+    steps:
+      - name: Checkout `dev`
+        uses: actions/checkout@v4
+        with:
+          repository: SagerNet/sing-box
+          ref: dev
+          fetch-depth: 0
+
+      - name: Setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ needs.go.outputs.version }}
+
+      - name: Get `sing-box` version
+        id: alpha
+        run: |
+          git remote add sekai https://github.com/SagerNet/sing-box.git
+          git fetch --tags sekai
+          alpha_version=$(CGO_ENABLED=0 go run ./cmd/internal/read_tag)
+          echo alpha_version=$alpha_version >> $GITHUB_OUTPUT
+          echo alpha_tags=with_gvisor,with_dhcp,with_wireguard,with_reality_server,with_clash_api,with_quic,with_utls,with_ech,with_grpc >> $GITHUB_OUTPUT
+
+  alpha_cross:
+    strategy:
+      matrix:
+        include:
+          # linux
+          - name: linux-amd64
+            goos: linux
+            goarch: amd64
+            goamd64: v1
+          - name: linux-amd64-v3
+            goos: linux
+            goarch: amd64
+            goamd64: v3
+          - name: linux-armv5
+            goos: linux
+            goarch: arm
+            goarm: 5
+          - name: linux-armv6
+            goos: linux
+            goarch: arm
+            goarm: 6
+          - name: linux-armv7
+            goos: linux
+            goarch: arm
+            goarm: 7
+          - name: linux-arm64
+            goos: linux
+            goarch: arm64
+          - name: linux-mips-softfloat
+            goos: linux
+            goarch: mips
+            gomips: softfloat
+          - name: linux-mipsle-softfloat
+            goos: linux
+            goarch: mipsle
+            gomips: softfloat
+          - name: linux-mipsle-hardfloat
+            goos: linux
+            goarch: mipsle
+            gomips: hardfloat
+
+      fail-fast: false
+    runs-on: ubuntu-latest
+    needs:
+      - go
+      - alpha
+    env:
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+      GOAMD64: ${{ matrix.goamd64 }}
+      GOARM: ${{ matrix.goarm }}
+      GOMIPS: ${{ matrix.gomips }}
+      CGO_ENABLED: 0
+      alpha_TAGS: ${{ needs.alpha.outputs.alpha_tags }}
+      alpha_VERSION: ${{ needs.alpha.outputs.alpha_version }}
+    steps:
+      - name: Checkout `dev`
+        uses: actions/checkout@v4
+        with:
+          repository: SagerNet/sing-box
+          ref: dev
+          fetch-depth: 1
+
+      - name: Setup `Go`
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ needs.go.outputs.version }}
+
+      - name: Build `Alpha` core
+        id: build
+        run: go build -v -trimpath -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${alpha_VERSION}' -s -w -buildid=" -tags "${alpha_TAGS}" ./cmd/sing-box
+
+      - name: Upload files to workspace
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpha-${{ matrix.name }}
+          path:
+            sing-box*
+          compression-level: 9
+
+  push_sing-box:
+    needs:
+      - puernya_cross
+      - puernya
+      - release_cross
+      - release
+      - alpha_cross
+      - alpha
+    runs-on: ubuntu-latest
+    env:
+      puernya_VERSION: ${{ needs.puernya.outputs.puernya_version }}
+      release_VERSION: ${{ needs.release.outputs.release_version }}
+      alpha_VERSION: ${{ needs.alpha.outputs.alpha_version }}
+    steps:
+      - name: Clone Repository
+        uses: actions/checkout@main
+
+      - name: Download files from workspace
+        uses: actions/download-artifact@v4
+        with:
+          path: ./tmp-sing-box/
+
+      - name: Zip `sing-box` cores by `tar`
+        run: |
+          archs=(amd64 amd64-v3 armv5 armv6 armv7 arm64 mips-softfloat mipsle-hardfloat mipsle-softfloat)
+          new_name=(amd64 amd64v3 armv5 armv6 armv7 armv8 mips-softfloat mipsle-hardfloat mipsle-softfloat)
+          # `PuerNya` core
+          for((i=0;i<9;i++));do
+            mv -f ./tmp-sing-box/puernya-linux-${archs[i]}/sing-box ./tmp-sing-box/sing-box
+            chmod +x ./tmp-sing-box/sing-box
+            tar --no-same-owner -czf ./tmp-sing-box/sing-box-puernya-linux-${new_name[i]}.tar.gz -C ./tmp-sing-box/ ./sing-box
+          done
+
+          # `Release` core
+          for((i=0;i<9;i++));do
+            mv -f ./tmp-sing-box/release-linux-${archs[i]}/sing-box ./tmp-sing-box/sing-box
+            chmod +x ./tmp-sing-box/sing-box
+            tar --no-same-owner -czf ./tmp-sing-box/sing-box-release-linux-${new_name[i]}.tar.gz -C ./tmp-sing-box/ ./sing-box
+          done
+
+          # `Alpha` core
+          for((i=0;i<9;i++));do
+            mv -f ./tmp-sing-box/alpha-linux-${archs[i]}/sing-box ./tmp-sing-box/sing-box
+            chmod +x ./tmp-sing-box/sing-box
+            tar --no-same-owner -czf ./tmp-sing-box/sing-box-alpha-linux-${new_name[i]}.tar.gz -C ./tmp-sing-box/ ./sing-box
+          done
+
+      - name: Move `sing-box` cores
+        run: |
+          mkdir -p ./sing-box/
+          # `PuerNya` core
+          mv -f ./tmp-sing-box/sing-box-puernya* ./sing-box/
+
+          # `Release` core
+          mv -f ./tmp-sing-box/sing-box-release* ./sing-box/
+
+          # `Alpha` core
+          mv -f ./tmp-sing-box/sing-box-alpha* ./sing-box/
+          rm -rf ./tmp-sing-box*
+
+      - name: Release and upload `sing-box` assets
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          release_name: sing-box
+          tag: sing-box
+          overwrite: true
+          body: "[sing-box](https://github.com/SagerNet/sing-box) Release 版、Alpha 版和 [PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核"
+          file_glob: true
+          file: ./sing-box/*
+
+      - name: Commit and push `sing-box` branch
+        run: |
+          cd ./sing-box/ || exit 1
+          git init
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b sing-box
+          git add ./sing-box-puernya* && git commit -m "更新 sing-box 内核 PuerNya 版至 v${puernya_VERSION}"
+          git add ./sing-box-release* && git commit -m "更新 sing-box 内核 Release 版至 v${release_VERSION}"
+          git add ./sing-box-alpha* && git commit -m "更新 sing-box 内核 Alpha 版至 v${alpha_VERSION}"
+          git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+          git push -f -u origin sing-box
