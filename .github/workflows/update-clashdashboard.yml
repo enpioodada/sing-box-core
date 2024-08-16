@@ -82,10 +82,3 @@ jobs:
         git add ./metacubexd* && git commit -m "更新 metacubexd 面板至 ${metacubexd_download_version}"
         git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
         git push -f -u origin Dashboard
-
-    - name: Purge jsDelivr CDN
-      run: |
-        cd ./Dashboard/ || exit 1
-        for file in $(ls); do
-          curl -i "https://purge.jsdelivr.net/gh/${{ github.repository }}@Dashboard/${file}"
-        done
