@@ -418,7 +418,6 @@ jobs:
           tag: sing-box
           overwrite: true
           body: " ** 📝 Release Notes**
-
 ---
 
 * [sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 ${{ needs.release.outputs.release_version }}
