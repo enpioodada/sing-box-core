@@ -417,7 +417,7 @@ jobs:
           release_name: sing-box
           tag: sing-box
           overwrite: true
-          body: "[sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 v${release_VERSION}、Alpha 版更新至 v${alpha_VERSION}和 [PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核更新至 v${puernya_VERSION}"
+          body: "[sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 ${{ needs.release.outputs.release_version }}、Alpha 版更新至 ${{ needs.alpha.outputs.alpha_version }}和 [PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核更新至 ${{ needs.puernya.outputs.puernya_version }}"
           file_glob: true
           file: ./sing-box/*
 
