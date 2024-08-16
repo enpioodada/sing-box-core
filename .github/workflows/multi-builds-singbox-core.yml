@@ -418,6 +418,7 @@ jobs:
           tag: sing-box
           overwrite: true
           body: " # 📝 Release Notes 
+          
 -  [sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 ${{ needs.release.outputs.release_version }}
 -  Alpha 版更新至 ${{ needs.alpha.outputs.alpha_version }}
 -  [PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核更新至 ${{ needs.puernya.outputs.puernya_version }}"
@@ -451,10 +452,10 @@ jobs:
                    ## sing-box 内核 PuerNya 版
 
 ```
-curl -L https://github.com/enpioodada/singbox-tools/raw/main/sing-box-puernya/sing-box-linux-amd64v3.tar.gz | tar -zx -C /usr/local/bin   ```
+curl -L https://github.com/enpioodada/singbox-tools/raw/main/sing-box-puernya/sing-box-linux-amd64v3.tar.gz | tar -zx -C /usr/local/bin
 ```
 
-## Sing-Box核心更新 <br/>
+## Changelog <br/>
 
 * [sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 ${{ needs.release.outputs.release_version }} <br/>Alpha 版更新至 ${{ needs.alpha.outputs.alpha_version }}<br/> [PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核更新至 ${{ needs.puernya.outputs.puernya_version }}*
                    "
