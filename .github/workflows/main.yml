@@ -413,7 +413,7 @@ jobs:
           release_name: sing-box
           tag: sing-box
           overwrite: true
-          body: "[sing-box](https://github.com/SagerNet/sing-box) Release 版、Alpha 版和 [PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核"
+          body: "[sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 v${release_VERSION}、Alpha 版更新至 v${alpha_VERSION} 和 [PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核更新至 v${puernya_VERSION}"
           file_glob: true
           file: ./sing-box/*
 
