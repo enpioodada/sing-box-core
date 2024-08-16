@@ -433,3 +433,18 @@ jobs:
           git add ./sing-box-alpha* && git commit -m "更新 sing-box 内核 Alpha 版至 v${alpha_VERSION}"
           git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
           git push -f -u origin sing-box
+      - name: Update GitHub Profile README
+        uses: theboi/github-update-readme@v1.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          puernya_VERSION: ${{ needs.puernya.outputs.puernya_version }}
+          release_VERSION: ${{ needs.release.outputs.release_version }}
+          alpha_VERSION: ${{ needs.alpha.outputs.alpha_version }}
+        with:
+          header: "Sing-Box核心编译"
+          subhead: " ```
+          [sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 ${{ needs.release.outputs.release_version }}
+          Alpha 版更新至 ${{ needs.alpha.outputs.alpha_version }}
+          [PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核更新至 ${{ needs.puernya.outputs.puernya_version }}
+          ``` "
+
