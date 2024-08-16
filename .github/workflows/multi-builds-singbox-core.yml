@@ -439,7 +439,7 @@ jobs:
           git push -f -u origin sing-box
 
       - name: Update GitHub Profile README
-        uses: theboi/github-update-readme@v1.0
+        uses: mnjirjak/github-update-readme@v1.4.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           puernya_VERSION: ${{ needs.puernya.outputs.puernya_version }}
