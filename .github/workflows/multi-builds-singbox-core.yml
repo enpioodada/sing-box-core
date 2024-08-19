@@ -432,7 +432,7 @@ jobs:
           git checkout -b sing-box
           git add ./sing-box-puernya* && git commit -m "更新 sing-box 内核 PuerNya 版至 v${puernya_VERSION}"
           git add ./sing-box-release* && git commit -m "更新 sing-box 内核 Release 版至 v${release_VERSION}"
-          git add ./sing-box-alpha* && git commit -m "更新 sing-box 内核 dev 版至 v${dev_VERSION}"
+          git add ./sing-box-dev* && git commit -m "更新 sing-box 内核 dev 版至 v${dev_VERSION}"
           git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
           git push -f -u origin sing-box
 
