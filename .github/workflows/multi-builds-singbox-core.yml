@@ -238,12 +238,12 @@ jobs:
             sing-box*
           compression-level: 9
 
-  alpha:
+  dev:
     runs-on: ubuntu-latest
     needs: go
     outputs:
-      alpha_version: ${{ steps.alpha.outputs.alpha_version }}
-      alpha_tags: ${{ steps.alpha.outputs.alpha_tags }}
+      dev_version: ${{ steps.dev.outputs.dev_version }}
+      dev_tags: ${{ steps.dev.outputs.dev_tags }}
     steps:
       - name: Checkout `dev`
         uses: actions/checkout@v4
@@ -258,15 +258,15 @@ jobs:
           go-version: ${{ needs.go.outputs.version }}
 
       - name: Get `sing-box` version
-        id: alpha
+        id: dev
         run: |
           git remote add sekai https://github.com/SagerNet/sing-box.git
           git fetch --tags sekai
-          alpha_version=$(CGO_ENABLED=0 go run ./cmd/internal/read_tag)
-          echo alpha_version=$alpha_version >> $GITHUB_OUTPUT
-          echo alpha_tags=with_gvisor,with_dhcp,with_wireguard,with_reality_server,with_clash_api,with_quic,with_utls,with_ech,with_grpc >> $GITHUB_OUTPUT
+          dev_version=$(CGO_ENABLED=0 go run ./cmd/internal/read_tag)
+          echo dev_version=$dev_version >> $GITHUB_OUTPUT
+          echo dev_tags=with_gvisor,with_dhcp,with_wireguard,with_reality_server,with_clash_api,with_quic,with_utls,with_ech,with_grpc >> $GITHUB_OUTPUT
 
-  alpha_cross:
+  dev_cross:
     strategy:
       matrix:
         include:
@@ -311,7 +311,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - go
-      - alpha
+      - dev
     env:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
@@ -319,8 +319,8 @@ jobs:
       GOARM: ${{ matrix.goarm }}
       GOMIPS: ${{ matrix.gomips }}
       CGO_ENABLED: 0
-      alpha_TAGS: ${{ needs.alpha.outputs.alpha_tags }}
-      alpha_VERSION: ${{ needs.alpha.outputs.alpha_version }}
+      dev_TAGS: ${{ needs.dev.outputs.dev_tags }}
+      dev_VERSION: ${{ needs.dev.outputs.dev_version }}
     steps:
       - name: Checkout `dev`
         uses: actions/checkout@v4
@@ -334,14 +334,14 @@ jobs:
         with:
           go-version: ${{ needs.go.outputs.version }}
 
-      - name: Build `Alpha` core
+      - name: Build `dev` core
         id: build
-        run: go build -v -trimpath -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${alpha_VERSION}' -s -w -buildid=" -tags "${alpha_TAGS}" ./cmd/sing-box
+        run: go build -v -trimpath -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${dev_VERSION}' -s -w -buildid=" -tags "${dev_TAGS}" ./cmd/sing-box
 
       - name: Upload files to workspace
         uses: actions/upload-artifact@v4
         with:
-          name: alpha-${{ matrix.name }}
+          name: dev-${{ matrix.name }}
           path:
             sing-box*
           compression-level: 9
@@ -352,13 +352,13 @@ jobs:
       - puernya
       - release_cross
       - release
-      - alpha_cross
-      - alpha
+      - dev_cross
+      - dev
     runs-on: ubuntu-latest
     env:
       puernya_VERSION: ${{ needs.puernya.outputs.puernya_version }}
       release_VERSION: ${{ needs.release.outputs.release_version }}
-      alpha_VERSION: ${{ needs.alpha.outputs.alpha_version }}
+      dev_VERSION: ${{ needs.dev.outputs.dev_version }}
     steps:
       - name: Clone Repository
         uses: actions/checkout@main
@@ -374,23 +374,23 @@ jobs:
           new_name=(amd64 amd64v3 armv5 armv6 armv7 armv8 mips-softfloat mipsle-hardfloat mipsle-softfloat)
           # `PuerNya` core
           for((i=0;i<9;i++));do
-            mv -f ./tmp-sing-box/puernya-linux-${archs[i]}/sing-box ./tmp-sing-box/sing-box
-            chmod +x ./tmp-sing-box/sing-box
-            tar --no-same-owner -czf ./tmp-sing-box/sing-box-puernya-linux-${new_name[i]}.tar.gz -C ./tmp-sing-box/ ./sing-box
+            mv -f ./tmp-sing-box/puernya-linux-${archs[i]}/sing-box ./tmp-sing-box/CrashCore
+            chmod +x ./tmp-sing-box/CrashCore
+            tar --no-same-owner -czf ./tmp-sing-box/sing-box-puernya-linux-${new_name[i]}.tar.gz -C ./tmp-sing-box/ ./CrashCore
           done
 
           # `Release` core
           for((i=0;i<9;i++));do
-            mv -f ./tmp-sing-box/release-linux-${archs[i]}/sing-box ./tmp-sing-box/sing-box
-            chmod +x ./tmp-sing-box/sing-box
-            tar --no-same-owner -czf ./tmp-sing-box/sing-box-release-linux-${new_name[i]}.tar.gz -C ./tmp-sing-box/ ./sing-box
+            mv -f ./tmp-sing-box/release-linux-${archs[i]}/sing-box ./tmp-sing-box/CrashCore
+            chmod +x ./tmp-sing-box/CrashCore
+            tar --no-same-owner -czf ./tmp-sing-box/sing-box-release-linux-${new_name[i]}.tar.gz -C ./tmp-sing-box/ ./CrashCore
           done
 
-          # `Alpha` core
+          # `dev` core
           for((i=0;i<9;i++));do
-            mv -f ./tmp-sing-box/alpha-linux-${archs[i]}/sing-box ./tmp-sing-box/sing-box
-            chmod +x ./tmp-sing-box/sing-box
-            tar --no-same-owner -czf ./tmp-sing-box/sing-box-alpha-linux-${new_name[i]}.tar.gz -C ./tmp-sing-box/ ./sing-box
+            mv -f ./tmp-sing-box/dev-linux-${archs[i]}/sing-box ./tmp-sing-box/CrashCore
+            chmod +x ./tmp-sing-box/CrashCore
+            tar --no-same-owner -czf ./tmp-sing-box/sing-box-dev-linux-${new_name[i]}.tar.gz -C ./tmp-sing-box/ ./CrashCore
           done
 
       - name: Move `sing-box` cores
@@ -402,15 +402,15 @@ jobs:
           # `Release` core
           mv -f ./tmp-sing-box/sing-box-release* ./sing-box/
 
-          # `Alpha` core
-          mv -f ./tmp-sing-box/sing-box-alpha* ./sing-box/
+          # `dev` core
+          mv -f ./tmp-sing-box/sing-box-dev* ./sing-box/
           rm -rf ./tmp-sing-box*
 
       - name: Release and upload `sing-box` assets
         env:
            puernya_VERSION: ${{ needs.puernya.outputs.puernya_version }}
            release_VERSION: ${{ needs.release.outputs.release_version }}
-           alpha_VERSION: ${{ needs.alpha.outputs.alpha_version }}
+           dev_VERSION: ${{ needs.dev.outputs.dev_version }}
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
@@ -419,7 +419,7 @@ jobs:
           overwrite: true
           body: " # 📝 Release Notes 
           
-1.[sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 1.9.3 <br/> 2.Alpha 版更新至 1.10.0-alpha.29 <br/> 3.[PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核更新至 1.10.0-alpha.29-067c81a7"
+1.[sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 ${{ needs.release.outputs.release_version }} <br/> 2.dev 版更新至 ${{ needs.dev.outputs.dev_version }} <br/> 3.[PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核更新至 ${{ needs.puernya.outputs.puernya_version }}"
           file_glob: true
           file: ./sing-box/*
 
@@ -432,7 +432,7 @@ jobs:
           git checkout -b sing-box
           git add ./sing-box-puernya* && git commit -m "更新 sing-box 内核 PuerNya 版至 v${puernya_VERSION}"
           git add ./sing-box-release* && git commit -m "更新 sing-box 内核 Release 版至 v${release_VERSION}"
-          git add ./sing-box-alpha* && git commit -m "更新 sing-box 内核 Alpha 版至 v${alpha_VERSION}"
+          git add ./sing-box-alpha* && git commit -m "更新 sing-box 内核 dev 版至 v${dev_VERSION}"
           git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
           git push -f -u origin sing-box
 
@@ -442,7 +442,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           puernya_VERSION: ${{ needs.puernya.outputs.puernya_version }}
           release_VERSION: ${{ needs.release.outputs.release_version }}
-          alpha_VERSION: ${{ needs.alpha.outputs.alpha_version }}
+          dev_VERSION: ${{ needs.dev.outputs.dev_version }}
         with:
           header: "Sing-Box核心编译"
           repoCount: "0"
@@ -455,5 +455,5 @@ curl -L https://github.com/enpioodada/singbox-tools/raw/main/sing-box-puernya/si
 
 ## Changelog <br/>
 
-1.[sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 1.9.3 <br/>2. Alpha 版更新至 1.10.0-alpha.29 <br/>3. [PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核更新至 1.10.0-alpha.29-067c81a7
+1.[sing-box](https://github.com/SagerNet/sing-box) Release 版更新至 ${{ needs.release.outputs.release_version }} <br/>2. dev 版更新至 ${{ needs.dev.outputs.dev_version }} <br/>3. [PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)内核更新至 ${{ needs.puernya.outputs.puernya_version }}
                    "
