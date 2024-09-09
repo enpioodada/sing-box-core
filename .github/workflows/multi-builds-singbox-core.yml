@@ -419,7 +419,7 @@ jobs:
                    ## sing-box 内核 PuerNya 版
 
 ```
-curl -L https://github.com/enpioodada/singbox-tools/raw/main/sing-box-puernya/sing-box-linux-amd64v3.tar.gz | tar -zx -C /usr/local/bin
+curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-puernya-linux-amd64v3.tar.gz | tar -zx -C /usr/local/bin
 ```
 
 ## Changelog <br/>
