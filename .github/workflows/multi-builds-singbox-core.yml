@@ -313,8 +313,8 @@ jobs:
       - name: Zip `sing-box` cores by `tar`
         run: |
           mkdir -p ./tmp-sing-box/compress/
-          archs=(amd64 amd64-v3 armv5 armv6 armv7 arm64 mips-softfloat mipsle-hardfloat mipsle-softfloat)
-          new_name=(amd64 amd64v3 armv5 armv6 armv7 armv8 mips-softfloat mipsle-hardfloat mipsle-softfloat)
+          archs=(amd64 amd64-v3 armv5 armv6 armv7 arm64)
+          new_name=(amd64 amd64v3 armv5 armv6 armv7 armv8)
           # `PuerNya` cores
           for ((i = 0; i < 9; i++)); do
             mv -f "./tmp-sing-box/sing-box-puernya-linux-${archs[i]}/sing-box" ./tmp-sing-box/sing-box
