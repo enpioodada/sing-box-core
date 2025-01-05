@@ -107,9 +107,10 @@ jobs:
         tag: Dashboard
         overwrite: true
         body: |
-          更新 [yacd 面板](https://github.com/haishanh/yacd)  至  ${{ env.yacd_version }}，发布于 ${{ env.yacd_time }}
-          更新 [Yacd-meta 面板](https://github.com/MetaCubeX/Yacd-meta)  至  ${{ env.yacd_meta_version }}，发布于 ${{ env.yacd_meta_time }}
-          更新 [metacubexd 面板](https://github.com/MetaCubeX/metacubexd)  至  ${{ env.metacubexd_version }}，发布于 ${{ env.metacubexd_time }}
-          更新 [zashboard 面板](https://github.com/Zephyruso/zashboard)  至  ${{ env.zashboard_version }}，发布于 ${{ env.zashboard_time }}
+         # 📝 Release Notes 
+         1. 更新 [yacd 面板](https://github.com/haishanh/yacd)  至  ${{ env.yacd_version }}，发布于 ${{ env.yacd_time }}
+         2. 更新 [Yacd-meta 面板](https://github.com/MetaCubeX/Yacd-meta)  至  ${{ env.yacd_meta_version }}，发布于 ${{ env.yacd_meta_time }}
+         3. 更新 [metacubexd 面板](https://github.com/MetaCubeX/metacubexd)  至  ${{ env.metacubexd_version }}，发布于 ${{ env.metacubexd_time }}
+         4. 更新 [zashboard 面板](https://github.com/Zephyruso/zashboard)  至  ${{ env.zashboard_version }}，发布于 ${{ env.zashboard_time }}
         file_glob: true
         file: ./Dashboard/*
