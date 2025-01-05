@@ -64,9 +64,13 @@ jobs:
           - { name: linux-armv6, goos: linux, goarch: arm, goarm: 6 }
           - { name: linux-armv7, goos: linux, goarch: arm, goarm: 7 }
           - { name: linux-arm64, goos: linux, goarch: arm64 }
+          - { name: linux-mips-softfloat, goos: linux, goarch: mips, gomips: softfloat }
+          - { name: linux-mipsle-softfloat, goos: linux, goarch: mipsle, gomips: softfloat }
+          - { name: linux-mipsle-hardfloat, goos: linux, goarch: mipsle, gomips: hardfloat }
           # windows
           - { name: windows-amd64, goos: windows, goarch: amd64, goamd64: v1 }
           - { name: windows-amd64-v3, goos: windows, goarch: amd64, goamd64: v3 }
+          - { name: windows-arm64, goos: windows, goarch: arm64 }
 
       fail-fast: false
     runs-on: ubuntu-latest
@@ -151,9 +155,13 @@ jobs:
           - { name: linux-armv6, goos: linux, goarch: arm, goarm: 6 }
           - { name: linux-armv7, goos: linux, goarch: arm, goarm: 7 }
           - { name: linux-arm64, goos: linux, goarch: arm64 }
+          - { name: linux-mips-softfloat, goos: linux, goarch: mips, gomips: softfloat }
+          - { name: linux-mipsle-softfloat, goos: linux, goarch: mipsle, gomips: softfloat }
+          - { name: linux-mipsle-hardfloat, goos: linux, goarch: mipsle, gomips: hardfloat }
           # windows
           - { name: windows-amd64, goos: windows, goarch: amd64, goamd64: v1 }
           - { name: windows-amd64-v3, goos: windows, goarch: amd64, goamd64: v3 }
+          - { name: windows-arm64, goos: windows, goarch: arm64 }
 
       fail-fast: false
     runs-on: ubuntu-latest
@@ -235,9 +243,13 @@ jobs:
           - { name: linux-armv6, goos: linux, goarch: arm, goarm: 6 }
           - { name: linux-armv7, goos: linux, goarch: arm, goarm: 7 }
           - { name: linux-arm64, goos: linux, goarch: arm64 }
+          - { name: linux-mips-softfloat, goos: linux, goarch: mips, gomips: softfloat }
+          - { name: linux-mipsle-softfloat, goos: linux, goarch: mipsle, gomips: softfloat }
+          - { name: linux-mipsle-hardfloat, goos: linux, goarch: mipsle, gomips: hardfloat }
           # windows
           - { name: windows-amd64, goos: windows, goarch: amd64, goamd64: v1 }
           - { name: windows-amd64-v3, goos: windows, goarch: amd64, goamd64: v3 }
+          - { name: windows-arm64, goos: windows, goarch: arm64 }
 
       fail-fast: false
     runs-on: ubuntu-latest
@@ -313,8 +325,8 @@ jobs:
       - name: Zip `sing-box` cores by `tar`
         run: |
           mkdir -p ./tmp-sing-box/compress/
-          archs=(amd64 amd64-v3 armv5 armv6 armv7 arm64)
-          new_name=(amd64 amd64v3 armv5 armv6 armv7 armv8)
+          archs=(amd64 amd64-v3 armv5 armv6 armv7 arm64 mips-softfloat mipsle-hardfloat mipsle-softfloat)
+          new_name=(amd64 amd64v3 armv5 armv6 armv7 armv8 mips-softfloat mipsle-hardfloat mipsle-softfloat)
           # `PuerNya` cores
           for ((i = 0; i < 9; i++)); do
             mv -f "./tmp-sing-box/sing-box-puernya-linux-${archs[i]}/sing-box" ./tmp-sing-box/CrashCore
