@@ -343,17 +343,14 @@ jobs:
           # `PuerNya` cores for Windows
           mv -f ./tmp-sing-box/sing-box-puernya-windows-amd64/sing-box.exe ./sing-box/sing-box-puernya-windows-amd64.exe
           mv -f ./tmp-sing-box/sing-box-puernya-windows-amd64-v3/sing-box.exe ./sing-box/sing-box-puernya-windows-amd64v3.exe
-          mv -f ./tmp-sing-box/sing-box-puernya-windows-arm64/sing-box.exe ./sing-box/sing-box-puernya-windows-arm64.exe
 
           # `Release` cores for Windows
           mv -f ./tmp-sing-box/sing-box-release-windows-amd64/sing-box.exe ./sing-box/sing-box-release-windows-amd64.exe
           mv -f ./tmp-sing-box/sing-box-release-windows-amd64-v3/sing-box.exe ./sing-box/sing-box-release-windows-amd64v3.exe
-          mv -f ./tmp-sing-box/sing-box-release-windows-arm64/sing-box.exe ./sing-box/sing-box-release-windows-arm64.exe
 
           # `dev` cores for Windows
           mv -f ./tmp-sing-box/sing-box-dev-windows-amd64/sing-box.exe ./sing-box/sing-box-dev-windows-amd64.exe
           mv -f ./tmp-sing-box/sing-box-dev-windows-amd64-v3/sing-box.exe ./sing-box/sing-box-dev-windows-amd64v3.exe
-          mv -f ./tmp-sing-box/sing-box-dev-windows-arm64/sing-box.exe ./sing-box/sing-box-dev-windows-arm64.exe
           rm -rf ./tmp*
 
       - name: Release and upload `sing-box` assets
