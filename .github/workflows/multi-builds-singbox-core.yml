@@ -60,8 +60,6 @@ jobs:
           # linux
           - { name: linux-amd64, goos: linux, goarch: amd64, goamd64: v1 }
           - { name: linux-amd64-v3, goos: linux, goarch: amd64, goamd64: v3 }
-          - { name: linux-armv5, goos: linux, goarch: arm, goarm: 5 }
-          - { name: linux-armv6, goos: linux, goarch: arm, goarm: 6 }
           - { name: linux-armv7, goos: linux, goarch: arm, goarm: 7 }
           - { name: linux-arm64, goos: linux, goarch: arm64 }
           # windows
@@ -78,6 +76,7 @@ jobs:
       GOARCH: ${{ matrix.goarch }}
       GOAMD64: ${{ matrix.goamd64 }}
       GOARM: ${{ matrix.goarm }}
+      GOMIPS: ${{ matrix.gomips }}
       CGO_ENABLED: 0
       puernya_TAGS: ${{ needs.puernya.outputs.puernya_tags }}
       puernya_VERSION: ${{ needs.puernya.outputs.puernya_version }}
@@ -146,8 +145,6 @@ jobs:
           # linux
           - { name: linux-amd64, goos: linux, goarch: amd64, goamd64: v1 }
           - { name: linux-amd64-v3, goos: linux, goarch: amd64, goamd64: v3 }
-          - { name: linux-armv5, goos: linux, goarch: arm, goarm: 5 }
-          - { name: linux-armv6, goos: linux, goarch: arm, goarm: 6 }
           - { name: linux-armv7, goos: linux, goarch: arm, goarm: 7 }
           - { name: linux-arm64, goos: linux, goarch: arm64 }
           # windows
@@ -164,6 +161,7 @@ jobs:
       GOARCH: ${{ matrix.goarch }}
       GOAMD64: ${{ matrix.goamd64 }}
       GOARM: ${{ matrix.goarm }}
+      GOMIPS: ${{ matrix.gomips }}
       CGO_ENABLED: 0
       release_TAGS: ${{ needs.release.outputs.release_tags }}
       release_VERSION: ${{ needs.release.outputs.release_version }}
@@ -229,8 +227,6 @@ jobs:
           # linux
           - { name: linux-amd64, goos: linux, goarch: amd64, goamd64: v1 }
           - { name: linux-amd64-v3, goos: linux, goarch: amd64, goamd64: v3 }
-          - { name: linux-armv5, goos: linux, goarch: arm, goarm: 5 }
-          - { name: linux-armv6, goos: linux, goarch: arm, goarm: 6 }
           - { name: linux-armv7, goos: linux, goarch: arm, goarm: 7 }
           - { name: linux-arm64, goos: linux, goarch: arm64 }
           # windows
@@ -247,6 +243,7 @@ jobs:
       GOARCH: ${{ matrix.goarch }}
       GOAMD64: ${{ matrix.goamd64 }}
       GOARM: ${{ matrix.goarm }}
+      GOMIPS: ${{ matrix.gomips }}
       CGO_ENABLED: 0
       dev_TAGS: ${{ needs.dev.outputs.dev_tags }}
       dev_VERSION: ${{ needs.dev.outputs.dev_version }}
@@ -310,24 +307,24 @@ jobs:
       - name: Zip `sing-box` cores by `tar`
         run: |
           mkdir -p ./tmp-sing-box/compress/
-          archs=(amd64 amd64-v3 armv5 armv6 armv7 arm64)
-          new_name=(amd64 amd64v3 armv5 armv6 armv7 armv8)
+          archs=(amd64 amd64-v3 armv7 arm64)
+          new_name=(amd64 amd64v36 armv7 armv8)
           # `PuerNya` cores
-          for ((i = 0; i < 9; i++)); do
+          for ((i = 0; i < ${#archs[@]}; i++)); do
             mv -f "./tmp-sing-box/sing-box-puernya-linux-${archs[i]}/sing-box" ./tmp-sing-box/sing-box
             chmod +x ./tmp-sing-box/sing-box
             tar --no-same-owner -czf "./tmp-sing-box/compress/sing-box-puernya-linux-${new_name[i]}.tar.gz" -C ./tmp-sing-box/ ./sing-box
           done
 
           # `Release` cores
-          for ((i = 0; i < 9; i++)); do
+          for ((i = 0; i < ${#archs[@]}; i++)); do
             mv -f "./tmp-sing-box/sing-box-release-linux-${archs[i]}/sing-box" ./tmp-sing-box/sing-box
             chmod +x ./tmp-sing-box/sing-box
             tar --no-same-owner -czf "./tmp-sing-box/compress/sing-box-release-linux-${new_name[i]}.tar.gz" -C ./tmp-sing-box/ ./sing-box
           done
 
           # `dev` cores
-          for ((i = 0; i < 9; i++)); do
+          for ((i = 0; i < ${#archs[@]}; i++)); do
             mv -f "./tmp-sing-box/sing-box-dev-linux-${archs[i]}/sing-box" ./tmp-sing-box/sing-box
             chmod +x ./tmp-sing-box/sing-box
             tar --no-same-owner -czf "./tmp-sing-box/compress/sing-box-dev-linux-${new_name[i]}.tar.gz" -C ./tmp-sing-box/ ./sing-box
@@ -359,9 +356,9 @@ jobs:
           overwrite: true
           body: |
            # 📝 Release Notes 
-           1. 更新 [sing-box Release 版](https://github.com/SagerNet/sing-box/tree/main)至 ${{ env.release_VERSION }}，发布于 ${{ env.release_TIME }} <br/>
-           2. 更新 [sing-box Dev 版](https://github.com/SagerNet/sing-box/tree/dev)至 ${{ env.dev_VERSION }}，发布于 ${{ env.dev_TIME }} <br/>
-           3. 更新 [sing-box PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)至 v${{ env.puernya_VERSION }}，发布于 ${{ env.puernya_TIME }}
+           1. 更新 [sing-box Release 版](https://github.com/SagerNet/sing-box/tree/main) 至 ${{ env.release_VERSION }}，发布于 ${{ env.release_TIME }} <br/>
+           2. 更新 [sing-box Dev 版](https://github.com/SagerNet/sing-box/tree/dev) 至 ${{ env.dev_VERSION }}，发布于 ${{ env.dev_TIME }} <br/>
+           3. 更新 [sing-box PuerNya 版](https://github.com/PuerNya/sing-box/tree/building) 至 v${{ env.puernya_VERSION }}，发布于 ${{ env.puernya_TIME }}
           file_glob: true
           file: ./sing-box/*
 
@@ -385,6 +382,6 @@ jobs:
 
             ## Changelog <br/>
 
-            1. 更新 [sing-box Release 版](https://github.com/SagerNet/sing-box/tree/main)至 ${{ env.release_VERSION }}，发布于 ${{ env.release_TIME }} <br/>
-            2. 更新 [sing-box Dev 版](https://github.com/SagerNet/sing-box/tree/dev)至 ${{ env.dev_VERSION }}，发布于 ${{ env.dev_TIME }} <br/>
-            3. 更新 [sing-box PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)至 v${{ env.puernya_VERSION }}，发布于 ${{ env.puernya_TIME }}
+            1. 更新 [sing-box Release 版](https://github.com/SagerNet/sing-box/tree/main) 至 ${{ env.release_VERSION }}，发布于 ${{ env.release_TIME }} <br/>
+            2. 更新 [sing-box Dev 版](https://github.com/SagerNet/sing-box/tree/dev) 至 ${{ env.dev_VERSION }}，发布于 ${{ env.dev_TIME }} <br/>
+            3. 更新 [sing-box PuerNya 版](https://github.com/PuerNya/sing-box/tree/building) 至 v${{ env.puernya_VERSION }}，发布于 ${{ env.puernya_TIME }}
