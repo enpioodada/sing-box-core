@@ -118,7 +118,7 @@ jobs:
         run: |
           release_version=$(curl -sSL https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.tag_name')
           echo "release_version=$release_version" >> $GITHUB_OUTPUT
-          echo release_tags=with_gvisor,with_dhcp,with_wireguard,with_clash_api,with_quic,with_utls,with_ech >> $GITHUB_OUTPUT
+          echo release_tags=with_gvisor,with_quic,with_dhcp,with_wireguard,with_utls,with_reality_server,with_acme,with_clash_api >> $GITHUB_OUTPUT
           release_time=$(curl -sSL https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.created_at' | xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d')
           echo "release_time=$release_time" >> $GITHUB_OUTPUT
 
@@ -184,7 +184,7 @@ jobs:
         run: |
           dev_version=$(curl -sSL https://api.github.com/repos/SagerNet/sing-box/releases | jq -r '[.[] | select(.tag_name | test("alpha|beta|rc"))][0].tag_name')
           echo "dev_version=$dev_version" >> $GITHUB_OUTPUT
-          echo dev_tags=with_gvisor,with_dhcp,with_wireguard,with_clash_api,with_quic,with_utls,with_acme >> $GITHUB_OUTPUT
+          echo dev_tags=with_gvisor,with_quic,with_dhcp,with_wireguard,with_utls,with_acme,with_clash_api,with_tailscale >> $GITHUB_OUTPUT
           dev_time=$(curl -sSL https://api.github.com/repos/SagerNet/sing-box/releases | jq -r '[.[] | select(.tag_name | test("alpha|beta|rc"))][0].created_at' | xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d')
           echo "dev_time=$dev_time" >> $GITHUB_OUTPUT
 
