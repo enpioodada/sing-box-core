@@ -20,7 +20,7 @@ jobs:
       - name: Get `Go` latest version
         id: go
         run: |
-          echo version=$(curl -sSL https://raw.githubusercontent.com/actions/go-versions/update-versions-manifest-file/versions-manifest.json | jq -r 'map(.version) | sort_by(split(".") | map(tonumber)) | last') >> $GITHUB_OUTPUT
+          echo version=$(curl -sSL https://raw.githubusercontent.com/actions/go-versions/update-versions-manifest-file/versions-manifest.json | jq -r '.[0].version') >> $GITHUB_OUTPUT
 
   puernya:
     runs-on: ubuntu-latest
@@ -118,7 +118,7 @@ jobs:
         run: |
           release_version=$(curl -sSL https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.tag_name')
           echo "release_version=$release_version" >> $GITHUB_OUTPUT
-          echo release_tags=with_gvisor,with_quic,with_dhcp,with_wireguard,with_utls,with_reality_server,with_acme,with_clash_api >> $GITHUB_OUTPUT
+          echo release_tags=with_gvisor,with_dhcp,with_wireguard,with_clash_api,with_quic,with_utls,with_ech >> $GITHUB_OUTPUT
           release_time=$(curl -sSL https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.created_at' | xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d')
           echo "release_time=$release_time" >> $GITHUB_OUTPUT
 
@@ -269,21 +269,21 @@ jobs:
           archs=(amd64 amd64-v3 armv7 arm64)
           new_name=(amd64 amd64v3 armv7 armv8)
           # `PuerNya` cores
-          for ((i = 0; i < ${#archs[@]}; i++)); do
+          for ((i = 0; i < 9; i++)); do
             mv -f "./tmp-sing-box/sing-box-puernya-linux-${archs[i]}/sing-box" ./tmp-sing-box/sing-box
             chmod +x ./tmp-sing-box/sing-box
             tar --no-same-owner -czf "./tmp-sing-box/compress/sing-box-puernya-linux-${new_name[i]}.tar.gz" -C ./tmp-sing-box/ ./sing-box
           done
 
           # `Release` cores
-          for ((i = 0; i < ${#archs[@]}; i++)); do
+          for ((i = 0; i < 9; i++)); do
             mv -f "./tmp-sing-box/sing-box-release-linux-${archs[i]}/sing-box" ./tmp-sing-box/sing-box
             chmod +x ./tmp-sing-box/sing-box
             tar --no-same-owner -czf "./tmp-sing-box/compress/sing-box-release-linux-${new_name[i]}.tar.gz" -C ./tmp-sing-box/ ./sing-box
           done
 
           # `dev` cores
-          for ((i = 0; i < ${#archs[@]}; i++)); do
+          for ((i = 0; i < 9; i++)); do
             mv -f "./tmp-sing-box/sing-box-dev-linux-${archs[i]}/sing-box" ./tmp-sing-box/sing-box
             chmod +x ./tmp-sing-box/sing-box
             tar --no-same-owner -czf "./tmp-sing-box/compress/sing-box-dev-linux-${new_name[i]}.tar.gz" -C ./tmp-sing-box/ ./sing-box
