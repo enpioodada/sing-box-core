@@ -15,78 +15,78 @@ jobs:
   Update:
     runs-on: ubuntu-latest
     steps:
-    - name: Clone Repository
-      uses: actions/checkout@main
+      - name: Clone Repository
+        uses: actions/checkout@main
 
-    - name: Get `yacd` version and time
-      run: |
-        yacd_version=$(curl -sSL https://api.github.com/repos/haishanh/yacd/releases/latest | jq -r '.tag_name')
-        echo "yacd_version=$yacd_version" >> ${GITHUB_ENV}
-        yacd_time=$(curl -sSL https://api.github.com/repos/haishanh/yacd/releases/latest | jq -r '.created_at' | xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d')
-        echo "yacd_time=$yacd_time" >> ${GITHUB_ENV}
+      - name: Get `yacd` version and time
+        run: |
+          yacd_version=$(curl -sSL https://api.github.com/repos/haishanh/yacd/releases/latest | jq -r '.tag_name')
+          echo "yacd_version=$yacd_version" >> ${GITHUB_ENV}
+          yacd_time=$(curl -sSL https://api.github.com/repos/haishanh/yacd/releases/latest | jq -r '.created_at' | xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d')
+          echo "yacd_time=$yacd_time" >> ${GITHUB_ENV}
 
-    - name: Get `Yacd-meta` version and time
-      run: |
-        yacd_meta_version=$(curl -sSL https://api.github.com/repos/MetaCubeX/Yacd-meta/releases/latest | jq -r '.tag_name')
-        echo "yacd_meta_version=$yacd_meta_version" >> ${GITHUB_ENV}
-        yacd_meta_time=$(curl -sSL https://api.github.com/repos/MetaCubeX/Yacd-meta/releases/latest | jq -r '.created_at' | xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d')
-        echo "yacd_meta_time=$yacd_meta_time" >> ${GITHUB_ENV}
+      - name: Get `Yacd-meta` version and time
+        run: |
+          yacd_meta_version=$(curl -sSL https://api.github.com/repos/MetaCubeX/Yacd-meta/releases/latest | jq -r '.tag_name')
+          echo "yacd_meta_version=$yacd_meta_version" >> ${GITHUB_ENV}
+          yacd_meta_time=$(curl -sSL https://api.github.com/repos/MetaCubeX/Yacd-meta/releases/latest | jq -r '.created_at' | xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d')
+          echo "yacd_meta_time=$yacd_meta_time" >> ${GITHUB_ENV}
 
-    - name: Get `metacubexd` version and time
-      run: |
-        metacubexd_version=$(curl -sSL https://api.github.com/repos/MetaCubeX/metacubexd/releases/latest | jq -r '.tag_name')
-        echo "metacubexd_version=$metacubexd_version" >> ${GITHUB_ENV}
-        metacubexd_time=$(curl -sSL https://api.github.com/repos/MetaCubeX/metacubexd/releases/latest | jq -r '.created_at' | xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d')
-        echo "metacubexd_time=$metacubexd_time" >> ${GITHUB_ENV}
+      - name: Get `metacubexd` version and time
+        run: |
+          metacubexd_version=$(curl -sSL https://api.github.com/repos/MetaCubeX/metacubexd/releases/latest | jq -r '.tag_name')
+          echo "metacubexd_version=$metacubexd_version" >> ${GITHUB_ENV}
+          metacubexd_time=$(curl -sSL https://api.github.com/repos/MetaCubeX/metacubexd/releases/latest | jq -r '.created_at' | xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d')
+          echo "metacubexd_time=$metacubexd_time" >> ${GITHUB_ENV}
 
-    - name: Get `zashboard` version and time
-      run: |
-        zashboard_version=$(curl -sSL https://api.github.com/repos/Zephyruso/zashboard/releases/latest | jq -r '.tag_name')
-        echo "zashboard_version=$zashboard_version" >> ${GITHUB_ENV}
-        zashboard_time=$(curl -sSL https://api.github.com/repos/Zephyruso/zashboard/releases/latest | jq -r '.created_at' | xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d')
-        echo "zashboard_time=$zashboard_time" >> ${GITHUB_ENV}
+      - name: Get `zashboard` version and time
+        run: |
+          zashboard_version=$(curl -sSL https://api.github.com/repos/Zephyruso/zashboard/releases/latest | jq -r '.tag_name')
+          echo "zashboard_version=$zashboard_version" >> ${GITHUB_ENV}
+          zashboard_time=$(curl -sSL https://api.github.com/repos/Zephyruso/zashboard/releases/latest | jq -r '.created_at' | xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d')
+          echo "zashboard_time=$zashboard_time" >> ${GITHUB_ENV}
 
-    - name: Download and compress `yacd` dashboard
-      run: |
-        mkdir -p ./Dashboard/ ./tmp/yacd/
-        curl -o ./tmp/yacd/gh-pages.zip -L https://github.com/haishanh/yacd/archive/refs/heads/gh-pages.zip
-        unzip -o ./tmp/yacd/gh-pages.zip -d ./tmp/yacd/
-        tar -czf ./Dashboard/yacd.tar.gz -C ./tmp/yacd/yacd-gh-pages/ .
+      - name: Download and compress `yacd` dashboard
+        run: |
+          mkdir -p ./Dashboard/ ./tmp/yacd/
+          curl -o ./tmp/yacd/gh-pages.zip -L https://github.com/haishanh/yacd/archive/refs/heads/gh-pages.zip
+          unzip -o ./tmp/yacd/gh-pages.zip -d ./tmp/yacd/
+          tar -czf ./Dashboard/yacd.tar.gz -C ./tmp/yacd/yacd-gh-pages/ .
 
-    - name: Download and compress `Yacd-meta` dashboard
-      run: |
-        mkdir -p ./tmp/Yacd-meta/
-        curl -o ./tmp/Yacd-meta/gh-pages.zip -L https://github.com/MetaCubeX/Yacd-meta/archive/refs/heads/gh-pages.zip
-        unzip -o ./tmp/Yacd-meta/gh-pages.zip -d ./tmp/Yacd-meta/
-        tar -czf ./Dashboard/Yacd-meta.tar.gz -C ./tmp/Yacd-meta/Yacd-meta-gh-pages/ .
+      - name: Download and compress `Yacd-meta` dashboard
+        run: |
+          mkdir -p ./tmp/Yacd-meta/
+          curl -o ./tmp/Yacd-meta/gh-pages.zip -L https://github.com/MetaCubeX/Yacd-meta/archive/refs/heads/gh-pages.zip
+          unzip -o ./tmp/Yacd-meta/gh-pages.zip -d ./tmp/Yacd-meta/
+          tar -czf ./Dashboard/Yacd-meta.tar.gz -C ./tmp/Yacd-meta/Yacd-meta-gh-pages/ .
 
-    - name: Download and compress `metacubexd` dashboard
-      run: |
-        mkdir -p ./tmp/metacubexd/
-        curl -o ./tmp/metacubexd/gh-pages.zip -L https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip
-        unzip -o ./tmp/metacubexd/gh-pages.zip -d ./tmp/metacubexd/
-        tar -czf ./Dashboard/metacubexd.tar.gz -C ./tmp/metacubexd/metacubexd-gh-pages/ .
+      - name: Download and compress `metacubexd` dashboard
+        run: |
+          mkdir -p ./tmp/metacubexd/
+          curl -o ./tmp/metacubexd/gh-pages.zip -L https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip
+          unzip -o ./tmp/metacubexd/gh-pages.zip -d ./tmp/metacubexd/
+          tar -czf ./Dashboard/metacubexd.tar.gz -C ./tmp/metacubexd/metacubexd-gh-pages/ .
 
-    - name: Download and compress `zashboard` dashboard
-      run: |
-        mkdir -p ./tmp/zashboard/
-        curl -o ./tmp/zashboard/gh-pages.zip -L https://github.com/Zephyruso/zashboard/releases/latest/download/dist-cdn-fonts.zip
-        unzip -o ./tmp/zashboard/gh-pages.zip -d ./tmp/zashboard/
-        tar -czf ./Dashboard/zashboard.tar.gz -C ./tmp/zashboard/dist/ .
-        rm -rf ./tmp*
+      - name: Download and compress `zashboard` dashboard
+        run: |
+          mkdir -p ./tmp/zashboard/
+          curl -o ./tmp/zashboard/gh-pages.zip -L https://github.com/Zephyruso/zashboard/releases/latest/download/dist-cdn-fonts.zip
+          unzip -o ./tmp/zashboard/gh-pages.zip -d ./tmp/zashboard/
+          tar -czf ./Dashboard/zashboard.tar.gz -C ./tmp/zashboard/dist/ .
+          rm -rf ./tmp*
 
-    - name: Release and upload `Dashboard` assets
-      uses: svenstaro/upload-release-action@v2
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        release_name: Dashboard
-        tag: Dashboard
-        overwrite: true
-        body: |
-         # 📝 Release Notes 
-         1. 更新 [yacd 面板](https://github.com/haishanh/yacd)  至  ${{ env.yacd_version }}，发布于 ${{ env.yacd_time }}
-         2. 更新 [Yacd-meta 面板](https://github.com/MetaCubeX/Yacd-meta)  至  ${{ env.yacd_meta_version }}，发布于 ${{ env.yacd_meta_time }}
-         3. 更新 [metacubexd 面板](https://github.com/MetaCubeX/metacubexd)  至  ${{ env.metacubexd_version }}，发布于 ${{ env.metacubexd_time }}
-         4. 更新 [zashboard 面板](https://github.com/Zephyruso/zashboard)  至  ${{ env.zashboard_version }}，发布于 ${{ env.zashboard_time }}
-        file_glob: true
-        file: ./Dashboard/*
+      - name: Release and upload `Dashboard` assets
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          release_name: Dashboard
+          tag: Dashboard
+          overwrite: true
+          body: |
+            # 📝 Release Notes 
+            1. 更新 [yacd 面板](https://github.com/haishanh/yacd)至 ${{ env.yacd_version }}，发布于 ${{ env.yacd_time }}
+            2. 更新 [Yacd-meta 面板](https://github.com/MetaCubeX/Yacd-meta)至 ${{ env.yacd_meta_version }}，发布于 ${{ env.yacd_meta_time }}
+            3. 更新 [metacubexd 面板](https://github.com/MetaCubeX/metacubexd)至 ${{ env.metacubexd_version }}，发布于 ${{ env.metacubexd_time }}
+            4. 更新 [zashboard 面板](https://github.com/Zephyruso/zashboard)至 ${{ env.zashboard_version }}，发布于 ${{ env.zashboard_time }}
+          file_glob: true
+          file: ./Dashboard/*
