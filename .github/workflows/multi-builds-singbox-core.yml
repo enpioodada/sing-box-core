@@ -273,7 +273,7 @@ jobs:
       puernya_version: ${{ steps.vars.outputs.puernya_version }}
       puernya_time: ${{ steps.vars.outputs.puernya_time }}
 
-  update_readme:
+  Update_Readme:
     runs-on: ubuntu-latest
     if: always()
     needs: [puernya, push_sing-box]
@@ -283,7 +283,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           puernya_VERSION: ${{ needs.push_sing-box.outputs.puernya_version }}
-          puernya_TIME: ${{ needs.push-sing-box.outputs.puernya_time }}
+          puernya_TIME: ${{ needs.push_sing-box.outputs.puernya_time }}
           RELEASE_VERSION: ${{ needs.push_sing-box.outputs.release_version }}
           RELEASE_TIME: ${{ needs.push_sing-box.outputs.release_time }}
           DEV_VERSION: ${{ needs.push_sing-box.outputs.dev_version }}
