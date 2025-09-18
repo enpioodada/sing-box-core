@@ -301,5 +301,5 @@ jobs:
             ## Changelog <br/>
 
             1. 更新 [sing-box PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)至 v${{ env.puernya_VERSION }}，发布于 ${{ env.puernya_TIME }} <br/>
-            2. 更新 [sing-box Release 版](https://github.com/SagerNet/sing-box/tree/main)至 ${{ env.release_version }}，发布于 ${{ env.release_time }} <br/>
-            3. 更新 [sing-box Dev 版](https://github.com/SagerNet/sing-box/tree/dev)至 ${{ env.dev_version }}，发布于 ${{ env.dev_time }}
+            2. 更新 [sing-box Release 版](https://github.com/SagerNet/sing-box/tree/main)至 ${{ env.RELEASE_VERSION }}，发布于 ${{ env.RELEASE_TIME }} <br/>
+            3. 更新 [sing-box Dev 版](https://github.com/SagerNet/sing-box/tree/dev)至 ${{ env.DEV_VERSION }}，发布于 ${{ env.DEV_TIME }}
