@@ -258,14 +258,10 @@ jobs:
 
   update_readme:
     runs-on: ubuntu-latest
+    needs: [puernya, push_sing-box]
     steps:
       - name: Update README
         uses: mnjirjak/github-update-readme@v1.4.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          puernya_VERSION: ${{ needs.puernya.outputs.puernya_version }}
-          release_VERSION: ${{ env.RELEASE_VERSION }}
-          dev_VERSION: ${{ env.DEV_VERSION }}
         with:
           header: "Sing-Box核心编译"
           repoCount: "0"
