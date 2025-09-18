@@ -281,6 +281,7 @@ jobs:
       - name: Update README
         uses: mnjirjak/github-update-readme@v1.4.0
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           puernya_VERSION: ${{ needs.push_sing-box.outputs.puernya_version }}
           puernya_TIME: ${{ needs.push-sing-box.outputs.puernya_time }}
           RELEASE_VERSION: ${{ needs.push_sing-box.outputs.release_version }}
