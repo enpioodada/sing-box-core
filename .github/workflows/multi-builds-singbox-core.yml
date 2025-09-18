@@ -255,6 +255,19 @@ jobs:
             3. 更新 [sing-box PuerNya 版](https://github.com/PuerNya/sing-box/tree/building) 至 v${{ env.puernya_VERSION }}，发布于 ${{ env.puernya_TIME }}
           file_glob: true
           file: ./sing-box/*
+          
+      - name: Set outputs for update_readme
+        id: vars
+        run: |
+          echo "release_version=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
+          echo "release_time=${RELEASE_TIME}" >> $GITHUB_OUTPUT
+          echo "dev_version=${DEV_VERSION}" >> $GITHUB_OUTPUT
+          echo "dev_time=${DEV_TIME}" >> $GITHUB_OUTPUT
+    outputs:
+      release_version: ${{ steps.vars.outputs.release_version }}
+      release_time: ${{ steps.vars.outputs.release_time }}
+      dev_version: ${{ steps.vars.outputs.dev_version }}
+      dev_time: ${{ steps.vars.outputs.dev_time }}
 
   update_readme:
     runs-on: ubuntu-latest
@@ -263,10 +276,11 @@ jobs:
       - name: Update README
         uses: mnjirjak/github-update-readme@v1.4.0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           puernya_VERSION: ${{ needs.puernya.outputs.puernya_version }}
-          release_VERSION: ${{ env.RELEASE_VERSION }}
-          dev_VERSION: ${{ env.DEV_VERSION }}
+          RELEASE_VERSION: ${{ needs.push_sing-box.outputs.release_version }}
+          RELEASE_TIME: ${{ needs.push_sing-box.outputs.release_time }}
+          DEV_VERSION: ${{ needs.push_sing-box.outputs.dev_version }}
+          DEV_TIME: ${{ needs.push_sing-box.outputs.dev_time }}
         with:
           header: "Sing-Box核心编译"
           repoCount: "0"
