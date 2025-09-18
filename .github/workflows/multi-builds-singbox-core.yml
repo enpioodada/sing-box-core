@@ -258,6 +258,7 @@ jobs:
 
   update_readme:
     runs-on: ubuntu-latest
+    needs: [puernya, push_sing-box]
     steps:
       - name: Update README
         uses: mnjirjak/github-update-readme@v1.4.0
