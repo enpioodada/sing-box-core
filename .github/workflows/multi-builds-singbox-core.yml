@@ -263,20 +263,26 @@ jobs:
           echo "release_time=${RELEASE_TIME}" >> $GITHUB_OUTPUT
           echo "dev_version=${DEV_VERSION}" >> $GITHUB_OUTPUT
           echo "dev_time=${DEV_TIME}" >> $GITHUB_OUTPUT
+          echo "puernya_version=${puernya_VERSION}" >> $GITHUB_OUTPUT
+          echo "puernya_time=${puernya_TIME}" >> $GITHUB_OUTPUT
     outputs:
       release_version: ${{ steps.vars.outputs.release_version }}
       release_time: ${{ steps.vars.outputs.release_time }}
       dev_version: ${{ steps.vars.outputs.dev_version }}
       dev_time: ${{ steps.vars.outputs.dev_time }}
+      puernya_version: ${{ steps.vars.outputs.puernya_version }}
+      puernya_time: ${{ steps.vars.outputs.puernya_time }}
 
   update_readme:
     runs-on: ubuntu-latest
+    if: always()
     needs: [puernya, push_sing-box]
     steps:
       - name: Update README
         uses: mnjirjak/github-update-readme@v1.4.0
         env:
-          puernya_VERSION: ${{ needs.puernya.outputs.puernya_version }}
+          puernya_VERSION: ${{ needs.push_sing-box.outputs.puernya_version }}
+          puernya_TIME: ${{ needs.push-sing-box.outputs.puernya_time }}
           RELEASE_VERSION: ${{ needs.push_sing-box.outputs.release_version }}
           RELEASE_TIME: ${{ needs.push_sing-box.outputs.release_time }}
           DEV_VERSION: ${{ needs.push_sing-box.outputs.dev_version }}
