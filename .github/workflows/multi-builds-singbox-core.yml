@@ -210,22 +210,25 @@ jobs:
       - name: Download `sing-box Dev` files
         if: ${{ env.sing_box_Dev_skip_update != 'true' }}
         run: |
+          # Linux
           mkdir -p ./sing-box/
-          archs=(amd64 armv7 arm64)
-          for arch in "${archs[@]}"; do
-            mkdir -p "./tmp-dev/dev_linux_${arch}"
-            curl -L "${DOWNLOAD_URL}/${DEV_VERSION}/sing-box-${DEV_VERSION#v}-linux-${arch}.tar.gz" | tar -zx -C "./tmp-dev/dev_linux_${arch}/"
-            mv -f "./tmp-dev/dev_linux_${arch}/sing-box-${DEV_VERSION#v}-linux-${arch}/sing-box" ./tmp-dev/sing-box
-            chmod +x ./tmp-dev/sing-box
-            tar --no-same-owner -czf "./sing-box/sing-box-dev-linux-${arch}.tar.gz" -C ./tmp-dev/ sing-box
+          linux_old_name=(amd64 armv5 armv6 armv7-musl arm64)
+          linux_new_name=(amd64 armv5 armv6 armv7 armv8)
+          for i in "${!linux_old_name[@]}"; do
+            mkdir -p "./tmp-dev/dev_linux_${linux_old_name[i]}"
+            curl -L "${download_url}/${dev_version}/sing-box-${dev_version#v}-linux-${linux_old_name[i]}.tar.gz" | tar -zx -C "./tmp-dev/dev_linux_${linux_old_name[i]}/"
+            mv -f "./tmp-dev/dev_linux_${linux_old_name[i]}/sing-box-${dev_version#v}-linux-${linux_old_name[i]}/sing-box" ./tmp-dev/sing-box
+            chmod +x ./tmp-dev/CrashCore
+            tar --no-same-owner -czf "./sing-box/sing-box-dev-linux-${linux_new_name[i]}.tar.gz" -C ./tmp-dev/ sing-box
           done
 
+          # Windows
           archs=(amd64 arm64)
           for arch in "${archs[@]}"; do
             mkdir -p "./tmp-dev/dev_windows_${arch}"
-            wget -P "./tmp-dev/dev_windows_${arch}/" "${DOWNLOAD_URL}/${DEV_VERSION}/sing-box-${DEV_VERSION#v}-windows-${arch}.zip"
-            unzip -o "./tmp-dev/dev_windows_${arch}/sing-box-${DEV_VERSION#v}-windows-${arch}.zip" -d "./tmp-dev/dev_windows_${arch}/"
-            mv -f "./tmp-dev/dev_windows_${arch}/sing-box-${DEV_VERSION#v}-windows-${arch}/sing-box.exe" "./sing-box/sing-box-dev-windows-${arch}.exe"
+            wget -P "./tmp-dev/dev_windows_${arch}/" "${download_url}/${dev_version}/sing-box-${dev_version#v}-windows-${arch}.zip"
+            unzip -o "./tmp-dev/dev_windows_${arch}/sing-box-${dev_version#v}-windows-${arch}.zip" -d "./tmp-dev/dev_windows_${arch}/"
+            mv -f "./tmp-dev/dev_windows_${arch}/sing-box-${dev_version#v}-windows-${arch}/sing-box.exe" "./sing-box/sing-box-dev-windows-${arch}.exe"
           done
           rm -rf ./tmp-dev*
 
