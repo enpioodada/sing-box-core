@@ -380,12 +380,12 @@ jobs:
         if: ${{ needs.puernya.outputs.puernya_skip_update != 'true' }}
         run: |
           # Linux
-          mkdir -p ./tmp-puernya/ ./sing-box/
+          mkdir -p ./tmp-ref1nd/tmp-puernya/ ./sing-box/
           archs=(amd64 armv7 arm64)
           for arch in "${archs[@]}"; do
-            mv -f "./tmp-ref1nd//sing-box-puernya-linux-${arch}/sing-box" ./tmp-puernya/sing-box
-            chmod +x ./tmp-ref1nd//sing-box
-            tar --no-same-owner -czf "./sing-box/sing-box-puernya-linux-${arch}.tar.gz" -C ./tmp-puernya/ sing-box
+            mv -f "./tmp-ref1nd/sing-box-puernya-linux-${arch}/sing-box" ./tmp-ref1nd/tmp-puernya/sing-box
+            chmod +x ./tmp-ref1nd/sing-box
+            tar --no-same-owner -czf "./sing-box/sing-box-puernya-linux-${arch}.tar.gz" -C ./tmp-ref1nd/tmp-puernya/ sing-box
           done
 
           # Windows
