@@ -501,3 +501,65 @@ jobs:
             5. 更新 [sing-box PuerNya 版](https://github.com/PuerNya/sing-box/tree/building) 至 v${{ env.puernya_VERSION }}，发布于 ${{ env.puernya_TIME }}
           file_glob: true
           file: ./sing-box/*
+
+      - name: Set outputs for update_readme
+        id: vars
+        run: |
+          echo "release_version=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
+          echo "release_time=${RELEASE_TIME}" >> $GITHUB_OUTPUT
+          echo "dev_version=${DEV_VERSION}" >> $GITHUB_OUTPUT
+          echo "dev_time=${DEV_TIME}" >> $GITHUB_OUTPUT
+          echo "puernya_version=${puernya_VERSION}" >> $GITHUB_OUTPUT
+          echo "puernya_time=${puernya_TIME}" >> $GITHUB_OUTPUT
+          echo "ref1nd_main_version=${eref1nd_main_VERSION}" >> $GITHUB_OUTPUT
+          echo "ref1nd_main_time=${ref1nd_main_TIME}" >> $GITHUB_OUTPUT
+          echo "ref1nd_dev_version=${ref1nd_dev_VERSION}" >> $GITHUB_OUTPUT
+          echo "ref1nd_dev_time=${ref1nd_dev_TIME}" >> $GITHUB_OUTPUT
+    outputs:
+      release_version: ${{ steps.vars.outputs.release_version }}
+      release_time: ${{ steps.vars.outputs.release_time }}
+      dev_version: ${{ steps.vars.outputs.dev_version }}
+      dev_time: ${{ steps.vars.outputs.dev_time }}
+      puernya_version: ${{ steps.vars.outputs.puernya_version }}
+      puernya_time: ${{ steps.vars.outputs.puernya_time }}
+      ref1nd_main_version: ${{ steps.vars.outputs.ref1nd_main_version }}
+      ref1nd_main_time: ${{ steps.vars.outputs.ref1nd_main_time }}
+      ref1nd_dev_version: ${{ steps.vars.outputs.ref1nd_dev_version }}
+      ref1nd_dev_time: ${{ steps.vars.outputs.ref1nd_dev_time }}
+
+  Update_Readme:
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [puernya, push_sing-box]
+    steps:
+      - name: Update README
+        uses: mnjirjak/github-update-readme@v1.4.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          puernya_VERSION: ${{ needs.push_sing-box.outputs.puernya_version }}
+          puernya_TIME: ${{ needs.push_sing-box.outputs.puernya_time }}
+          ref1nd_main_VERSION: ${{ needs.push_sing-box.outputs.ref1nd_main_version }}
+          ref1nd_main_TIME: ${{ needs.push_sing-box.outputs.ref1nd_main_time }}
+          ref1nd_dev_VERSION: ${{ needs.push_sing-box.outputs.ref1nd_dev_version }}
+          ref1nd_dev_TIME: ${{ needs.push_sing-box.outputs.ref1nd_dev_time }}
+          RELEASE_VERSION: ${{ needs.push_sing-box.outputs.release_version }}
+          RELEASE_TIME: ${{ needs.push_sing-box.outputs.release_time }}
+          DEV_VERSION: ${{ needs.push_sing-box.outputs.dev_version }}
+          DEV_TIME: ${{ needs.push_sing-box.outputs.dev_time }}
+        with:
+          header: "Sing-Box核心编译"
+          repoCount: "0"
+          subhead: |
+            ## sing-box 内核 PuerNya 版
+
+            ```
+            curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-puernya-linux-amd64.tar.gz | tar -zx -C /usr/local/bin
+            ```
+
+            ## Changelog <br/>
+
+            1. 更新 [sing-box PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)至 v${{ env.puernya_VERSION }}，发布于 ${{ env.puernya_TIME }} <br/>
+            2. 更新 [sing-box reF1nd-main 版](https://github.com/reF1nd/sing-box/tree/reF1nd-main)至 v${{ env.ref1nd_main_VERSION }}，发布于 ${{ env.ref1nd_main_TIME }} <br/>
+            3. 更新 [sing-box reF1nd-dev 版](https://github.com/reF1nd/sing-box/tree/reF1nd-dev)至 v${{ env.ref1nd_dev_VERSION }}，发布于 ${{ env.ref1nd_dev_TIME }} <br/>
+            4. 更新 [sing-box Release 版](https://github.com/SagerNet/sing-box/tree/main)至 ${{ env.RELEASE_VERSION }}，发布于 ${{ env.RELEASE_TIME }} <br/>
+            5. 更新 [sing-box Dev 版](https://github.com/SagerNet/sing-box/tree/dev)至 ${{ env.DEV_VERSION }}，发布于 ${{ env.DEV_TIME }}
