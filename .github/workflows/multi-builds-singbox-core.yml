@@ -384,7 +384,7 @@ jobs:
           archs=(amd64 armv7 arm64)
           for arch in "${archs[@]}"; do
             mv -f "./tmp-ref1nd/sing-box-puernya-linux-${arch}/sing-box" ./tmp-ref1nd/tmp-puernya/sing-box
-            chmod +x ./tmp-ref1nd/sing-box
+            chmod +x ./tmp-ref1nd/tmp-puernya/sing-box
             tar --no-same-owner -czf "./sing-box/sing-box-puernya-linux-${arch}.tar.gz" -C ./tmp-ref1nd/tmp-puernya/ sing-box
           done
 
