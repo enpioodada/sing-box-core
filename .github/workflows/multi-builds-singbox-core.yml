@@ -261,8 +261,8 @@ jobs:
         run: |
           # Linux
           mkdir -p ./tmp-ref1nd/ ./sing-box/
-          linux_old_name=(amd64-v1 amd64-v3 armv5 armv6 armv7 arm64 mips-softfloat mipsle-softfloat mipsle-hardfloat)
-          linux_new_name=(amd64v1 amd64v3 armv5 armv6 armv7 armv8 mips-softfloat mipsle-softfloat mipsle-hardfloat)
+          linux_old_name=(amd64-v1 amd64-v3 armv7 arm64)
+          linux_new_name=(amd64v1 amd64v3 armv7 armv8)
           for i in "${!linux_old_name[@]}"; do
             mv -f "./tmp-ref1nd/sing-box-ref1nd-dev-linux-${linux_old_name[i]}/sing-box" ./tmp-ref1nd/sing-box
             chmod +x ./tmp-ref1nd/sing-box
