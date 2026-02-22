@@ -20,7 +20,7 @@ jobs:
       - name: Get `Go` latest version
         id: go
         run: |
-          echo "version=$(curl -sSL https://go.dev/dl/?mode=json | jq -r '.[] | select(.version|startswith("go1.20")) | .version' | head -n1 | sed 's/go//')" >> $GITHUB_OUTPUT
+          echo "version=$(curl -sSL https://go.dev/dl/?mode=json | jq -r '.[] | select(.version|startswith("go1.25")) | .version' | head -n1 | sed 's/go//')" >> $GITHUB_OUTPUT
   puernya:
     runs-on: ubuntu-latest
     needs: go
