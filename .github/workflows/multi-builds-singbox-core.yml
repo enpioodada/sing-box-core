@@ -731,7 +731,7 @@ jobs:
             ## sing-box 内核 reF1nd-Stable 版
 
             ```
-            curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-ref1nd-main-linux-amd64v3.tar.gz | tar -zx -C /usr/local/bin
+            curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-ref1nd-stable-linux-amd64-v3.tar.gz | tar -zx -C /usr/local/bin
             ```
 
             ## Changelog <br/>
