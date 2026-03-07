@@ -572,7 +572,7 @@ jobs:
         run: |
           # Linux
           mkdir -p ./sing-box/
-          linux_archs=(amd64-v1 amd64-v3 armv5 armv6 armv7 arm64 mips-softfloat mipsle-softfloat mipsle-hardfloat)
+          linux_archs=(amd64-v1 amd64-v3 armv7 arm64)
           for i in "${!linux_archs[@]}"; do
             mv -f "./tmp/sing-box-ref1nd-test-linux-${linux_archs[i]}/sing-box" ./tmp/sing-box
 
