@@ -737,7 +737,7 @@ jobs:
             ## Changelog <br/>
 
             1. 更新 [sing-box PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)至 v${{ env.puernya_VERSION }}，发布于 ${{ env.puernya_TIME }} <br/>
-            2. 更新 [sing-box reF1nd-Stable 版](https://github.com/reF1nd/sing-box/tree/reF1nd-main)至 v${{ env.ref1nd_stable_VERSION }}，发布于 ${{ env.ref1nd_stable_TIME }} <br/>
-            3. 更新 [sing-box reF1nd-Test 版](https://github.com/reF1nd/sing-box/tree/reF1nd-dev)至 v${{ env.ref1nd_test_VERSION }}，发布于 ${{ env.ref1nd_test_TIME }} <br/>
-            4. 更新 [sing-box Stable 版](https://github.com/SagerNet/sing-box/tree/main)至 ${{ env.singbox_stable_VERSION }}，发布于 ${{ env.singbox_stable_TIME }} <br/>
-            5. 更新 [sing-box Test 版](https://github.com/SagerNet/sing-box/tree/dev)至 ${{ env.singbox_test_VERSION }}，发布于 ${{ env.singbox_test_TIME }}
+            2. 更新 [sing-box reF1nd-Stable 版](https://github.com/reF1nd/sing-box/tree/reF1nd-stable)至 v${{ env.ref1nd_stable_VERSION }}，发布于 ${{ env.ref1nd_stable_TIME }} <br/>
+            3. 更新 [sing-box reF1nd-Test 版](https://github.com/reF1nd/sing-box/tree/reF1nd-testing)至 v${{ env.ref1nd_test_VERSION }}，发布于 ${{ env.ref1nd_test_TIME }} <br/>
+            4. 更新 [sing-box Stable 版](https://github.com/SagerNet/sing-box/tree/stable)至 ${{ env.singbox_stable_VERSION }}，发布于 ${{ env.singbox_stable_TIME }} <br/>
+            5. 更新 [sing-box Test 版](https://github.com/SagerNet/sing-box/tree/testing)至 ${{ env.singbox_test_VERSION }}，发布于 ${{ env.singbox_test_TIME }}
