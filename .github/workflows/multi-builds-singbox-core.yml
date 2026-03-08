@@ -301,7 +301,7 @@ jobs:
         run: go build -v -trimpath -ldflags "-checklinkname=0 -X 'github.com/sagernet/sing-box/constant.Version=${ref1nd_test_VERSION}' -s -w -buildid=" -tags "${ref1nd_test_TAGS}" ./cmd/sing-box
 
       - name: Upload files to workspace
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: sing-box-ref1nd-test-${{ matrix.name }}
           path: sing-box*
@@ -394,7 +394,7 @@ jobs:
         run: go build -v -trimpath -ldflags "-checklinkname=0 -X 'github.com/sagernet/sing-box/constant.Version=${singbox_stable_VERSION}' -s -w -buildid=" -tags "${singbox_stable_TAGS}" ./cmd/sing-box
 
       - name: Upload files to workspace
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: sing-box-stable-${{ matrix.name }}
           path: sing-box*
@@ -487,7 +487,7 @@ jobs:
         run: go build -v -trimpath -ldflags "-checklinkname=0 -X 'github.com/sagernet/sing-box/constant.Version=${singbox_test_VERSION}' -s -w -buildid=" -tags "${singbox_test_TAGS}" ./cmd/sing-box
 
       - name: Upload files to workspace
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: sing-box-test-${{ matrix.name }}
           path: sing-box*
