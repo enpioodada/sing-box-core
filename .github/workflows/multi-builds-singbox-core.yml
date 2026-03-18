@@ -571,7 +571,7 @@ jobs:
           done
 
 
-       - name: Download `sing-box reF1nd-Test` files
+      - name: Download `sing-box reF1nd-Test` files
         if: ${{ env.ref1nd_test_Skip_update != 'true' }}
         run: |
           # Linux
