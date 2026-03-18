@@ -521,7 +521,7 @@ jobs:
       singbox_test_Skip_update: ${{ needs.singbox_test_version.outputs.singbox_test_skip_update }}
       puernya_VERSION: ${{ needs.puernya.outputs.puernya_version }}
       puernya_TIME: ${{ needs.puernya.outputs.puernya_time }}
-    steps:
+    steps: 
       - name: Clone Repository
         uses: actions/checkout@v6
 
