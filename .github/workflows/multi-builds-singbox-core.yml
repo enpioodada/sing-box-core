@@ -730,11 +730,11 @@ jobs:
 
         ## Changelog
 
-        1. 更新 sing-box PuerNya 版至 v${{ needs.push_sing-box.outputs.puernya_version }}，发布于 ${{ needs.push_sing-box.outputs.puernya_time }}
-        2. 更新 sing-box reF1nd-Stable 版至 v${{ needs.push_sing-box.outputs.ref1nd_stable_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.ref1nd_stable_TIME }}
-        3. 更新 sing-box reF1nd-Test 版至 v${{ needs.push_sing-box.outputs.ref1nd_test_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.ref1nd_test_TIME }}
-        4. 更新 sing-box Stable 版至 ${{ needs.push_sing-box.outputs.singbox_stable_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.singbox_stable_TIME }}
-        5. 更新 sing-box Test 版至 ${{ needs.push_sing-box.outputs.singbox_test_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.singbox_test_TIME }}
+        1. 更新 [sing-box PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)至 v${{ needs.push_sing-box.outputs.puernya_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.puernya_TIME }}
+        2. 更新 [sing-box reF1nd-Stable 版](https://github.com/reF1nd/sing-box/tree/reF1nd-stable)至 v${{ needs.push_sing-box.outputs.ref1nd_stable_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.ref1nd_stable_TIME }}
+        3. 更新 [sing-box reF1nd-Test 版](https://github.com/reF1nd/sing-box/tree/reF1nd-testing)至 v${{ needs.push_sing-box.outputs.ref1nd_test_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.ref1nd_test_TIME }}
+        4. 更新 [sing-box Stable 版](https://github.com/SagerNet/sing-box/tree/stable)至 ${{ needs.push_sing-box.outputs.singbox_stable_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.singbox_stable_TIME }}
+        5. 更新 [sing-box Test 版](https://github.com/SagerNet/sing-box/tree/testing)至 ${{ needs.push_sing-box.outputs.singbox_test_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.singbox_test_TIME }}
         EOF
 
     - name: Commit README
