@@ -709,39 +709,38 @@ jobs:
     if: always()
     needs: [puernya, push_sing-box]
     steps:
-      - name: Update README
-        uses: mnjirjak/github-update-readme@v1.4.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          puernya_VERSION: ${{ needs.push_sing-box.outputs.puernya_version }}
-          puernya_TIME: ${{ needs.push_sing-box.outputs.puernya_time }}
-          ref1nd_stable_VERSION: ${{ needs.push_sing-box.outputs.ref1nd_stable_VERSION }}
-          ref1nd_stable_TIME: ${{ needs.push_sing-box.outputs.ref1nd_stable_TIME }}
-          ref1nd_test_VERSION: ${{ needs.push_sing-box.outputs.ref1nd_test_VERSION }}
-          ref1nd_test_TIME: ${{ needs.push_sing-box.outputs.ref1nd_test_TIME }}
-          singbox_stable_VERSION: ${{ needs.push_sing-box.outputs.singbox_stable_VERSION }}
-          singbox_stable_TIME: ${{ needs.push_sing-box.outputs.singbox_stable_TIME }}
-          singbox_test_VERSION: ${{ needs.push_sing-box.outputs.singbox_test_VERSION }}
-          singbox_test_TIME: ${{ needs.push_sing-box.outputs.singbox_test_TIME }}
-        with:
-          header: "Sing-Box核心编译"
-          repoCount: "0"
-          subhead: |
-            ## sing-box 内核 PuerNya 版
+    - uses: actions/checkout@v4
 
-            ```
-            curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-puernya-linux-amd64.tar.gz | tar -zx -C /usr/local/bin
-            ```
-            ## sing-box 内核 reF1nd-Stable 版
+    - name: Generate README
+      run: |
+        cat > README.md <<EOF
+        # Sing-Box核心编译
 
-            ```
-            curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-ref1nd-stable-linux-amd64-v3.tar.gz | tar -zx -C /usr/local/bin
-            ```
+        ## sing-box 内核 PuerNya 版
 
-            ## Changelog <br/>
+        \`\`\`
+        curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-puernya-linux-amd64.tar.gz | tar -zx -C /usr/local/bin
+        \`\`\`
 
-            1. 更新 [sing-box PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)至 v${{ env.puernya_VERSION }}，发布于 ${{ env.puernya_TIME }} <br/>
-            2. 更新 [sing-box reF1nd-Stable 版](https://github.com/reF1nd/sing-box/tree/reF1nd-stable)至 v${{ env.ref1nd_stable_VERSION }}，发布于 ${{ env.ref1nd_stable_TIME }} <br/>
-            3. 更新 [sing-box reF1nd-Test 版](https://github.com/reF1nd/sing-box/tree/reF1nd-testing)至 v${{ env.ref1nd_test_VERSION }}，发布于 ${{ env.ref1nd_test_TIME }} <br/>
-            4. 更新 [sing-box Stable 版](https://github.com/SagerNet/sing-box/tree/stable)至 ${{ env.singbox_stable_VERSION }}，发布于 ${{ env.singbox_stable_TIME }} <br/>
-            5. 更新 [sing-box Test 版](https://github.com/SagerNet/sing-box/tree/testing)至 ${{ env.singbox_test_VERSION }}，发布于 ${{ env.singbox_test_TIME }}
+        ## sing-box 内核 reF1nd-Stable 版
+
+        \`\`\`
+        curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-ref1nd-stable-linux-amd64-v3.tar.gz | tar -zx -C /usr/local/bin
+        \`\`\`
+
+        ## Changelog
+
+        1. 更新 sing-box PuerNya 版至 v${{ needs.push_sing-box.outputs.puernya_version }}，发布于 ${{ needs.push_sing-box.outputs.puernya_time }}
+        2. 更新 sing-box reF1nd-Stable 版至 v${{ needs.push_sing-box.outputs.ref1nd_stable_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.ref1nd_stable_TIME }}
+        3. 更新 sing-box reF1nd-Test 版至 v${{ needs.push_sing-box.outputs.ref1nd_test_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.ref1nd_test_TIME }}
+        4. 更新 sing-box Stable 版至 ${{ needs.push_sing-box.outputs.singbox_stable_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.singbox_stable_TIME }}
+        5. 更新 sing-box Test 版至 ${{ needs.push_sing-box.outputs.singbox_test_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.singbox_test_TIME }}
+        EOF
+
+    - name: Commit README
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add README.md
+        git commit -m "Update README" || echo "No changes"
+        git push
