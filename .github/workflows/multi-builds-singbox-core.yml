@@ -614,7 +614,7 @@ jobs:
             mv -f "./tmp/sing-box-stable-windows-${windows_archs[j]}/sing-box.exe" "./sing-box/sing-box-stable-windows-${windows_archs[j]}.exe"
           done
 
-      - name: Download `sing-box Stable` files
+      - name: Download `sing-box Test` files
         if: ${{ env.singbox_stable_Skip_update != 'true' }}
         run: |
           # Linux
