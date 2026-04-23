@@ -540,8 +540,6 @@ jobs:
           done
 
           # Windows
-          mv -f ./tmp/sing-box-puernya-windows-amd64/sing-box.exe ./sing-box/sing-box-puernya-windows-amd64.exe
-          mv -f ./tmp/sing-box-puernya-windows-arm64/sing-box.exe ./sing-box/sing-box-puernya-windows-arm64.exe
           rm -rf ./tmp/*
       
       - name: Download `sing-box reF1nd-Stable` files
