@@ -78,9 +78,6 @@ jobs:
           - { name: linux-amd64, goos: linux, goarch: amd64, goamd64: v1 }
           - { name: linux-armv7, goos: linux, goarch: arm, goarm: 7 }
           - { name: linux-arm64, goos: linux, goarch: arm64 }
-          # windows
-          - { name: windows-amd64, goos: windows, goarch: amd64, goamd64: v1 }
-          - { name: windows-arm64, goos: windows, goarch: arm64 }
 
       fail-fast: false
     needs:
