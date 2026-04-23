@@ -539,8 +539,7 @@ jobs:
             tar --no-same-owner -czf "./sing-box/sing-box-puernya-linux-${arch}.tar.gz" -C ./tmp/ sing-box
           done
 
-          # Windows
-          rm -rf ./tmp/*
+          
       
       - name: Download `sing-box reF1nd-Stable` files
         if: ${{ env.ref1nd_stable_Skip_update != 'true' }}
