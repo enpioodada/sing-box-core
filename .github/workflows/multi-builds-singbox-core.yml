@@ -615,7 +615,7 @@ jobs:
           done
 
       - name: Download `sing-box Test` files
-        if: ${{ env.singbox_stable_Skip_update != 'true' }}
+        if: ${{ env.singbox_test_Skip_update != 'true' }}
         run: |
           # Linux
           mkdir -p ./sing-box/
