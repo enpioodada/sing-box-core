@@ -338,7 +338,7 @@ jobs:
       - name: Upload files to workspace
         uses: actions/upload-artifact@v6
         with:
-          name: sing-box-ref1nd-testing-${{ matrix.name }}
+          name: sing-box-ref1nd-test-${{ matrix.name }}
           path: sing-box*
 
   singbox_stable_version:
