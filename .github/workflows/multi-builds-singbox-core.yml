@@ -1,8 +1,11 @@
 name: Update sing-box
+
 on:
   workflow_dispatch:
+
   schedule:
     - cron: "0 */6 * * *"
+
   push:
     branches:
       - main
@@ -11,81 +14,165 @@ on:
       - ".github/workflows/delete-old-workflows.yml"
       - ".github/workflows/update-dashboard.yml"
 
+# 防止定时任务、手动运行、main push 同时运行多个实例，
+# 导致多个 Workflow 同时修改 main / README。
+concurrency:
+  group: update-sing-box
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
 jobs:
+
+  # ============================================================
+  # 获取最新 Go 版本
+  # ============================================================
   go:
     runs-on: ubuntu-latest
+
     outputs:
       go_version: ${{ steps.go.outputs.version }}
-    steps:
-      - name: Get `Go` latest version
-        id: go
-        run: |
-          echo "version=$(curl -sSL https://raw.githubusercontent.com/actions/go-versions/update-versions-manifest-file/versions-manifest.json | jq -r '.[0].version')" >> $GITHUB_OUTPUT
 
+    steps:
+      - name: Get Go latest version
+        id: go
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version=$(
+            curl -fsSL \
+              https://raw.githubusercontent.com/actions/go-versions/update-versions-manifest-file/versions-manifest.json |
+            jq -r '.[0].version'
+          )
+
+          if [[ -z "${version}" || "${version}" == "null" ]]; then
+            echo "无法获取 Go 最新版本"
+            exit 1
+          fi
+
+          echo "Go latest version: ${version}"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+
+  # ============================================================
+  # PuerNya
+  # ============================================================
   puernya:
     runs-on: ubuntu-latest
-    needs: go
+
+    needs:
+      - go
+
     outputs:
       puernya_version: ${{ steps.puernya.outputs.puernya_version }}
       puernya_time: ${{ steps.puernya.outputs.puernya_time }}
       puernya_tags: ${{ steps.puernya.outputs.puernya_tags }}
       puernya_skip_update: ${{ steps.compare.outputs.skip_update }}
+
     steps:
-      - name: Checkout `building`
+      - name: Checkout PuerNya building
         uses: actions/checkout@v7
         with:
           repository: PuerNya/sing-box
           ref: building
           fetch-depth: 0
 
-      - name: Setup `Go`
+      - name: Setup Go
         uses: actions/setup-go@v7
         with:
           go-version: ${{ needs.go.outputs.go_version }}
 
-      - name: Get `sing-box PuerNya` version
+      - name: Get sing-box PuerNya version
         id: puernya
+        shell: bash
         run: |
+          set -euo pipefail
+
           git remote add sekai https://github.com/SagerNet/sing-box.git
           git fetch --tags sekai
+
           puernya_version=$(CGO_ENABLED=0 go run ./cmd/internal/read_tag)
-          ver_commit=$(echo "${puernya_version}" | awk -F '-' '{print $3}')
-          puernya_time=$(git log -1 --format=%cd --date=format:'%Y-%m-%d' "$ver_commit")
-          echo "puernya_version=$puernya_version" >> $GITHUB_OUTPUT
-          echo "puernya_time=$puernya_time" >> $GITHUB_OUTPUT
-          echo "puernya_tags=with_quic,with_dhcp,with_wireguard,with_shadowsocksr,with_ech,with_utls,with_clash_api,with_gvisor" >> $GITHUB_OUTPUT
 
-      - name: Compare `sing-box PuerNya` versions with current release
-        id: compare
-        run: |
-          current_body=$(curl -sSL "https://api.github.com/repos/${{ github.repository }}/releases/tags/sing-box" | jq -r '.body // ""')
-          if echo "$current_body" | grep -q "${{ steps.puernya.outputs.puernya_version }}.*${{ steps.puernya.outputs.puernya_time }}"; then
-            echo "当前 sing-box PuerNya 版本已是最新版本 ${{ steps.puernya.outputs.puernya_version }}，无需更新"
-            skip_update=true
-          else
-            echo "当前 sing-box PuerNya 版本较低，需要更新最新版本至 ${{ steps.puernya.outputs.puernya_version }}"
-            skip_update=false
+          if [[ -z "${puernya_version}" ]]; then
+            echo "无法获取 PuerNya 版本号"
+            exit 1
           fi
-          echo "skip_update=$skip_update" >> $GITHUB_OUTPUT
 
+          ver_commit=$(echo "${puernya_version}" | awk -F '-' '{print $3}')
+
+          if [[ -z "${ver_commit}" ]]; then
+            echo "无法从版本号中解析基础 commit"
+            exit 1
+          fi
+
+          puernya_time=$(
+            git log -1 \
+              --format=%cd \
+              --date=format:'%Y-%m-%d' \
+              "${ver_commit}"
+          )
+
+          if [[ -z "${puernya_time}" ]]; then
+            echo "无法获取 PuerNya 发布时间"
+            exit 1
+          fi
+
+          puernya_tags="with_quic,with_dhcp,with_wireguard,with_shadowsocksr,with_ech,with_utls,with_clash_api,with_gvisor"
+
+          echo "puernya_version=${puernya_version}" >> "${GITHUB_OUTPUT}"
+          echo "puernya_time=${puernya_time}" >> "${GITHUB_OUTPUT}"
+          echo "puernya_tags=${puernya_tags}" >> "${GITHUB_OUTPUT}"
+
+      - name: Compare PuerNya version with current release
+        id: compare
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          current_body=$(
+            curl -fsSL \
+              "https://api.github.com/repos/${{ github.repository }}/releases/tags/sing-box" |
+            jq -r '.body // ""'
+          )
+
+          if echo "${current_body}" |
+            grep -q "${{ steps.puernya.outputs.puernya_version }}.*${{ steps.puernya.outputs.puernya_time }}"; then
+
+            echo "当前 sing-box PuerNya 版本已是最新版本 ${{ steps.puernya.outputs.puernya_version }}"
+            echo "无需更新"
+
+            echo "skip_update=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "当前 sing-box PuerNya 版本较低"
+            echo "需要更新至 ${{ steps.puernya.outputs.puernya_version }}"
+
+            echo "skip_update=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+
+  # ============================================================
+  # PuerNya Cross Compile
+  # ============================================================
   puernya_cross:
     runs-on: ubuntu-latest
+
     if: ${{ needs.puernya.outputs.puernya_skip_update != 'true' }}
+
+    needs:
+      - go
+      - puernya
+
     strategy:
+      fail-fast: false
+
       matrix:
         include:
-          # linux
           - { name: linux-amd64, goos: linux, goarch: amd64, goamd64: v1 }
           - { name: linux-armv7, goos: linux, goarch: arm, goarm: 7 }
           - { name: linux-arm64, goos: linux, goarch: arm64 }
 
-      fail-fast: false
-    needs:
-      - go
-      - puernya
     env:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
@@ -93,105 +180,186 @@ jobs:
       GOARM: ${{ matrix.goarm }}
       GOMIPS: ${{ matrix.gomips }}
       CGO_ENABLED: 0
+
       puernya_VERSION: ${{ needs.puernya.outputs.puernya_version }}
       puernya_TAGS: ${{ needs.puernya.outputs.puernya_tags }}
+
     steps:
-      - name: Checkout `building`
+      - name: Checkout PuerNya building
         uses: actions/checkout@v7
         with:
           repository: PuerNya/sing-box
           ref: building
+          fetch-depth: 1
 
       - name: Fix sniff
-        run: sed -i 's/sniffHosts/sniffHost/' ./experimental/clashapi/trafficontrol/tracker.go
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i 's/sniffHosts/sniffHost/' \
+            ./experimental/clashapi/trafficontrol/tracker.go
 
-      - name: Setup `Go`
+      - name: Setup Go
         uses: actions/setup-go@v7
         with:
           go-version: ${{ needs.go.outputs.go_version }}
 
-      - name: Build `sing-box PuerNya` core
-        id: build
-        run: go build -v -trimpath -ldflags "-checklinkname=0 -X 'github.com/sagernet/sing-box/constant.Version=${puernya_VERSION}' -s -w -buildid=" -tags "${puernya_TAGS}" ./cmd/sing-box
+      - name: Build sing-box PuerNya core
+        run: |
+          go build -v -trimpath \
+            -ldflags "-checklinkname=0 -X 'github.com/sagernet/sing-box/constant.Version=${puernya_VERSION}' -s -w -buildid=" \
+            -tags "${puernya_TAGS}" \
+            ./cmd/sing-box
 
-      - name: Upload files to workspace
+      - name: Upload PuerNya artifact
         uses: actions/upload-artifact@v7
         with:
           name: sing-box-puernya-${{ matrix.name }}
           path: sing-box*
-          
+
+
+  # ============================================================
+  # reF1nd Stable
+  # ============================================================
   ref1nd_stable_version:
     runs-on: ubuntu-latest
-    needs: go
+
+    needs:
+      - go
+
     outputs:
       ref1nd_stable_version: ${{ steps.version.outputs.ref1nd_stable_version }}
       ref1nd_stable_time: ${{ steps.version.outputs.ref1nd_stable_time }}
-      ref1nd_stable_tags: ${{ steps.version.outputs.ref1nd_stable_tags }}
+
+      # 修复原来的输出错误：
+      # 原来 outputs 写的是 ref1nd_stable_tags，
+      # 但实际却生成 linux_tags / windows_tags。
+      ref1nd_stable_linux_tags: ${{ steps.version.outputs.ref1nd_stable_linux_tags }}
+      ref1nd_stable_windows_tags: ${{ steps.version.outputs.ref1nd_stable_windows_tags }}
+
       ref1nd_stable_skip_update: ${{ steps.compare.outputs.skip_update }}
+
     steps:
-      - name: Checkout `reF1nd-stable`
+      - name: Get reF1nd-Stable version
         id: version
+        shell: bash
         run: |
+          set -euo pipefail
+
           while true; do
+            found=false
+
             for i in {1..5}; do
-              tags=$(curl -sSL "https://api.github.com/repos/reF1nd/sing-box/tags?per_page=100&page=$i")
-              ref1nd_stable_version=$(echo "${tags}" | jq -r '.[].name' | grep -Po '^v?\K[0-9]+\.[0-9]+\.[0-9]+-reF1nd.*' | head -n 1)
-              if [[ -n "${ref1nd_stable_version}" && "${ref1nd_stable_version}" != "null" ]]; then
-                echo "在第 $i 页成功获取到 reF1nd-Stable 版本号"
-                ref1nd_stable_time=$(curl -sSL "https://api.github.com/repos/reF1nd/sing-box/commits/v${ref1nd_stable_version}" | jq -r '.commit.committer.date' | xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d')
+              tags=$(
+                curl -fsSL \
+                  "https://api.github.com/repos/reF1nd/sing-box/tags?per_page=100&page=$i"
+              )
+
+              ref1nd_stable_version=$(
+                echo "${tags}" |
+                jq -r '.[].name' |
+                grep -Po '^v?\K[0-9]+\.[0-9]+\.[0-9]+-reF1nd.*' |
+                head -n 1 ||
+                true
+              )
+
+              if [[ -n "${ref1nd_stable_version}" &&
+                    "${ref1nd_stable_version}" != "null" ]]; then
+
+                echo "在第 ${i} 页成功获取 reF1nd-Stable 版本号：${ref1nd_stable_version}"
+
+                ref1nd_stable_time=$(
+                  curl -fsSL \
+                    "https://api.github.com/repos/reF1nd/sing-box/commits/v${ref1nd_stable_version}" |
+                  jq -r '.commit.committer.date' |
+                  xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d'
+                )
+
                 echo "ref1nd_stable_version=${ref1nd_stable_version}" >> "${GITHUB_OUTPUT}"
                 echo "ref1nd_stable_time=${ref1nd_stable_time}" >> "${GITHUB_OUTPUT}"
-                exit 0
+
+                found=true
+                break
               fi
-              echo "在第 $i 页未获取到 reF1nd-Stable 版本号，将在 5 秒后重试在第 $((i+1)) 页获取..."
+
+              echo "第 ${i} 页未获取到 reF1nd-Stable 版本号"
               sleep 5
             done
-            echo "未获取到 reF1nd-Stable 版本号，将在 10 秒后重试..."
+
+            if [[ "${found}" == "true" ]]; then
+              break
+            fi
+
+            echo "未获取到 reF1nd-Stable 版本号，10 秒后重试..."
             sleep 10
           done
 
           echo "ref1nd_stable_linux_tags=with_quic,with_utls,with_clash_api" >> "${GITHUB_OUTPUT}"
           echo "ref1nd_stable_windows_tags=with_gvisor,with_quic,with_utls,with_clash_api,with_tailscale" >> "${GITHUB_OUTPUT}"
 
-      - name: Compare `sing-box reF1nd-Stable` versions with current release
+      - name: Compare reF1nd-Stable version with current release
         id: compare
+        shell: bash
         run: |
-          current_body=$(curl -sSL "https://api.github.com/repos/${{ github.repository }}/releases/tags/sing-box" | jq -r '.body // ""')
-          arch="sing-box reF1nd-Stable|${{ steps.version.outputs.ref1nd_stable_version }}|${{ steps.version.outputs.ref1nd_stable_time }}"
-          IFS="|" read -r name version time <<< "$arch"
-          if echo "${current_body}" | grep -q "${name}.*${version}.*${time}"; then
-            echo "当前 ${name} 版本已是最新版本 v${version}，无需更新"
-            skip_update=true
-          else
-            echo "当前 ${name} 版本较低，需要更新最新版本至 v${version}"
-            skip_update=false
-          fi
-          echo "skip_update=$skip_update" >> "${GITHUB_OUTPUT}"
+          set -euo pipefail
 
+          current_body=$(
+            curl -fsSL \
+              "https://api.github.com/repos/${{ github.repository }}/releases/tags/sing-box" |
+            jq -r '.body // ""'
+          )
+
+          name="sing-box reF1nd-Stable"
+          version="${{ steps.version.outputs.ref1nd_stable_version }}"
+          time="${{ steps.version.outputs.ref1nd_stable_time }}"
+
+          if echo "${current_body}" |
+            grep -q "${name}.*${version}.*${time}"; then
+
+            echo "当前 ${name} 版本已是最新版本 v${version}"
+            echo "无需更新"
+
+            echo "skip_update=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "当前 ${name} 版本较低"
+            echo "需要更新至 v${version}"
+
+            echo "skip_update=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+
+  # ============================================================
+  # reF1nd Stable Cross Compile
+  # ============================================================
   ref1nd_stable_cross:
     runs-on: ubuntu-latest
+
     if: ${{ needs.ref1nd_stable_version.outputs.ref1nd_stable_skip_update != 'true' }}
+
+    needs:
+      - ref1nd_stable_version
+
     strategy:
+      fail-fast: false
+
       matrix:
         include:
           # Linux
-          - { name: linux-amd64-v1, goos: linux, goarch: amd64, goamd64: v1, variant: musl }
-          - { name: linux-amd64-v3, goos: linux, goarch: amd64, goamd64: v3, variant: musl }
+          - { name: linux-amd64-v1, goos: linux, goarch: amd64, goamd64: v1 }
+          - { name: linux-amd64-v3, goos: linux, goarch: amd64, goamd64: v3 }
           - { name: linux-armv5, goos: linux, goarch: arm, goarm: 5 }
           - { name: linux-armv6, goos: linux, goarch: arm, goarm: 6 }
-          - { name: linux-armv7, goos: linux, goarch: arm, goarm: 7, variant: musl }
-          - { name: linux-arm64, goos: linux, goarch: arm64, variant: musl }
+          - { name: linux-armv7, goos: linux, goarch: arm, goarm: 7 }
+          - { name: linux-arm64, goos: linux, goarch: arm64 }
           - { name: linux-mips-softfloat, goos: linux, goarch: mips, gomips: softfloat }
           - { name: linux-mipsle-softfloat, goos: linux, goarch: mipsle, gomips: softfloat }
           - { name: linux-mipsle-hardfloat, goos: linux, goarch: mipsle, gomips: hardfloat }
+
           # Windows
           - { name: windows-amd64-v1, goos: windows, goarch: amd64, goamd64: v1 }
           - { name: windows-amd64-v3, goos: windows, goarch: amd64, goamd64: v3 }
           - { name: windows-arm64, goos: windows, goarch: arm64 }
 
-      fail-fast: false
-    needs:
-      - ref1nd_stable_version
     env:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
@@ -199,107 +367,181 @@ jobs:
       GOARM: ${{ matrix.goarm }}
       GOMIPS: ${{ matrix.gomips }}
       CGO_ENABLED: 0
+
       ref1nd_stable_VERSION: ${{ needs.ref1nd_stable_version.outputs.ref1nd_stable_version }}
+
       ref1nd_stable_linux_TAGS: ${{ needs.ref1nd_stable_version.outputs.ref1nd_stable_linux_tags }}
       ref1nd_stable_windows_TAGS: ${{ needs.ref1nd_stable_version.outputs.ref1nd_stable_windows_tags }}
+
     steps:
-      - name: Checkout `reF1nd/sing-box`
+      - name: Checkout reF1nd Stable
         uses: actions/checkout@v7
         with:
           repository: reF1nd/sing-box
           ref: reF1nd-stable
+          fetch-depth: 1
 
-      - name: Get `Go` version
+      - name: Get Go version
         id: go
+        shell: bash
         run: |
-          echo "go_version=$(curl -sSL https://raw.githubusercontent.com/reF1nd/sing-box/reF1nd-stable/.github/workflows/build.yml | grep 'go-version:' | head -n 1 | awk '{print $2}')" >> "${GITHUB_OUTPUT}"
+          set -euo pipefail
 
-      - name: Setup `Go`
+          go_version=$(
+            curl -fsSL \
+              https://raw.githubusercontent.com/reF1nd/sing-box/reF1nd-stable/.github/workflows/build.yml |
+            grep 'go-version:' |
+            head -n 1 |
+            awk '{print $2}'
+          )
+
+          echo "go_version=${go_version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Setup Go
         uses: actions/setup-go@v7
         with:
           go-version: ${{ steps.go.outputs.go_version }}
 
-      - name: Build `sing-box reF1nd-Stable` core (Linux)
+      - name: Build reF1nd-Stable Linux
         if: ${{ matrix.goos == 'linux' }}
-        run: go build -v -trimpath -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${ref1nd_stable_VERSION}' -s -w -buildid=" -tags "${ref1nd_stable_linux_TAGS}" ./cmd/sing-box
+        run: |
+          go build -v -trimpath \
+            -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${ref1nd_stable_VERSION}' -s -w -buildid=" \
+            -tags "${ref1nd_stable_linux_TAGS}" \
+            ./cmd/sing-box
 
-      - name: Build `sing-box reF1nd-Stable` core (Windows)
+      - name: Build reF1nd-Stable Windows
         if: ${{ matrix.goos == 'windows' }}
-        run: go build -v -trimpath -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${ref1nd_stable_VERSION}' -s -w -buildid=" -tags "${ref1nd_stable_windows_TAGS}" ./cmd/sing-box
+        run: |
+          go build -v -trimpath \
+            -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${ref1nd_stable_VERSION}' -s -w -buildid=" \
+            -tags "${ref1nd_stable_windows_TAGS}" \
+            ./cmd/sing-box
 
-      - name: Upload files to workspace
+      - name: Upload reF1nd-Stable artifact
         uses: actions/upload-artifact@v7
         with:
           name: sing-box-ref1nd-stable-${{ matrix.name }}
           path: sing-box*
 
+
+  # ============================================================
+  # reF1nd Test
+  # ============================================================
   ref1nd_test_version:
     runs-on: ubuntu-latest
+
     outputs:
       ref1nd_test_version: ${{ steps.version.outputs.ref1nd_test_version }}
       ref1nd_test_time: ${{ steps.version.outputs.ref1nd_test_time }}
       ref1nd_test_linux_tags: ${{ steps.version.outputs.ref1nd_test_linux_tags }}
       ref1nd_test_windows_tags: ${{ steps.version.outputs.ref1nd_test_windows_tags }}
       ref1nd_test_skip_update: ${{ steps.compare.outputs.skip_update }}
+
     steps:
-      - name: Get `sing-box reF1nd-Test` version
+      - name: Get reF1nd-Test version
         id: version
+        shell: bash
         run: |
+          set -euo pipefail
+
           while true; do
-            tags=$(curl -sSL https://api.github.com/repos/reF1nd/sing-box/tags)
-            ref1nd_test_version=$(echo "${tags}" | jq -r '.[].name' | grep -Po '^v\K.*(alpha|beta|rc).*-reF1nd.*' | head -n 1)
-            if [[ -n "${ref1nd_test_version}" && "${ref1nd_test_version}" != "null" ]]; then
-              ref1nd_test_time=$(curl -sSL "https://api.github.com/repos/reF1nd/sing-box/commits/v${ref1nd_test_version}" | jq -r '.commit.committer.date' | xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d')
+            tags=$(curl -fsSL "https://api.github.com/repos/reF1nd/sing-box/tags")
+
+            ref1nd_test_version=$(
+              echo "${tags}" |
+              jq -r '.[].name' |
+              grep -Po '^v\K.*(alpha|beta|rc).*-reF1nd.*' |
+              head -n 1 ||
+              true
+            )
+
+            if [[ -n "${ref1nd_test_version}" &&
+                  "${ref1nd_test_version}" != "null" ]]; then
+
+              ref1nd_test_time=$(
+                curl -fsSL \
+                  "https://api.github.com/repos/reF1nd/sing-box/commits/v${ref1nd_test_version}" |
+                jq -r '.commit.committer.date' |
+                xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d'
+              )
+
               echo "ref1nd_test_version=${ref1nd_test_version}" >> "${GITHUB_OUTPUT}"
               echo "ref1nd_test_time=${ref1nd_test_time}" >> "${GITHUB_OUTPUT}"
+
               break
             fi
-            echo "未获取到 reF1nd-Test 版本号，将在 10 秒后重试..."
+
+            echo "未获取到 reF1nd-Test 版本号，10 秒后重试..."
             sleep 10
           done
 
           echo "ref1nd_test_linux_tags=with_quic,with_utls,with_clash_api" >> "${GITHUB_OUTPUT}"
           echo "ref1nd_test_windows_tags=with_gvisor,with_quic,with_utls,with_clash_api,with_tailscale" >> "${GITHUB_OUTPUT}"
 
-      - name: Compare `sing-box reF1nd-Test` versions with current release
+      - name: Compare reF1nd-Test version with current release
         id: compare
+        shell: bash
         run: |
-          current_body=$(curl -sSL "https://api.github.com/repos/${{ github.repository }}/releases/tags/sing-box" | jq -r '.body // ""')
-          arch="sing-box reF1nd-Test|${{ steps.version.outputs.ref1nd_test_version }}|${{ steps.version.outputs.ref1nd_test_time }}"
-          IFS="|" read -r name version time <<< "$arch"
-          if echo "${current_body}" | grep -q "${name}.*${version}.*${time}"; then
-            echo "当前 ${name} 版本已是最新版本 v${version}，无需更新"
-            skip_update=true
-          else
-            echo "当前 ${name} 版本较低，需要更新最新版本至 v${version}"
-            skip_update=false
-          fi
-          echo "skip_update=$skip_update" >> "${GITHUB_OUTPUT}"
+          set -euo pipefail
 
+          current_body=$(
+            curl -fsSL \
+              "https://api.github.com/repos/${{ github.repository }}/releases/tags/sing-box" |
+            jq -r '.body // ""'
+          )
+
+          name="sing-box reF1nd-Test"
+          version="${{ steps.version.outputs.ref1nd_test_version }}"
+          time="${{ steps.version.outputs.ref1nd_test_time }}"
+
+          if echo "${current_body}" |
+            grep -q "${name}.*${version}.*${time}"; then
+
+            echo "当前 ${name} 版本已是最新版本 v${version}"
+            echo "无需更新"
+
+            echo "skip_update=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "当前 ${name} 版本较低"
+            echo "需要更新至 v${version}"
+
+            echo "skip_update=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+
+  # ============================================================
+  # reF1nd Test Cross Compile
+  # ============================================================
   ref1nd_test_cross:
     runs-on: ubuntu-latest
+
     if: ${{ needs.ref1nd_test_version.outputs.ref1nd_test_skip_update != 'true' }}
+
+    needs:
+      - ref1nd_test_version
+
     strategy:
+      fail-fast: false
+
       matrix:
         include:
           # Linux
-          - { name: linux-amd64-v1, goos: linux, goarch: amd64, goamd64: v1, variant: musl }
-          - { name: linux-amd64-v3, goos: linux, goarch: amd64, goamd64: v3, variant: musl }
+          - { name: linux-amd64-v1, goos: linux, goarch: amd64, goamd64: v1 }
+          - { name: linux-amd64-v3, goos: linux, goarch: amd64, goamd64: v3 }
           - { name: linux-armv5, goos: linux, goarch: arm, goarm: 5 }
           - { name: linux-armv6, goos: linux, goarch: arm, goarm: 6 }
-          - { name: linux-armv7, goos: linux, goarch: arm, goarm: 7, variant: musl }
-          - { name: linux-arm64, goos: linux, goarch: arm64, variant: musl }
+          - { name: linux-armv7, goos: linux, goarch: arm, goarm: 7 }
+          - { name: linux-arm64, goos: linux, goarch: arm64 }
           - { name: linux-mips-softfloat, goos: linux, goarch: mips, gomips: softfloat }
           - { name: linux-mipsle-softfloat, goos: linux, goarch: mipsle, gomips: softfloat }
           - { name: linux-mipsle-hardfloat, goos: linux, goarch: mipsle, gomips: hardfloat }
+
           # Windows
           - { name: windows-amd64-v1, goos: windows, goarch: amd64, goamd64: v1 }
           - { name: windows-amd64-v3, goos: windows, goarch: amd64, goamd64: v3 }
           - { name: windows-arm64, goos: windows, goarch: arm64 }
 
-      fail-fast: false
-    needs:
-      - ref1nd_test_version
     env:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
@@ -307,107 +549,177 @@ jobs:
       GOARM: ${{ matrix.goarm }}
       GOMIPS: ${{ matrix.gomips }}
       CGO_ENABLED: 0
+
       ref1nd_test_VERSION: ${{ needs.ref1nd_test_version.outputs.ref1nd_test_version }}
       ref1nd_test_linux_TAGS: ${{ needs.ref1nd_test_version.outputs.ref1nd_test_linux_tags }}
       ref1nd_test_windows_TAGS: ${{ needs.ref1nd_test_version.outputs.ref1nd_test_windows_tags }}
+
     steps:
-      - name: Checkout `reF1nd/sing-box`
+      - name: Checkout reF1nd Test
         uses: actions/checkout@v7
         with:
           repository: reF1nd/sing-box
           ref: reF1nd-testing
+          fetch-depth: 1
 
-      - name: Get `Go` version
+      - name: Get Go version
         id: go
+        shell: bash
         run: |
-          echo "go_version=$(curl -sSL https://raw.githubusercontent.com/reF1nd/sing-box/reF1nd-testing/.github/workflows/build.yml | grep 'go-version:' | head -n 1 | awk '{print $2}')" >> "${GITHUB_OUTPUT}"
+          set -euo pipefail
 
-      - name: Setup `Go`
+          go_version=$(
+            curl -fsSL \
+              https://raw.githubusercontent.com/reF1nd/sing-box/reF1nd-testing/.github/workflows/build.yml |
+            grep 'go-version:' |
+            head -n 1 |
+            awk '{print $2}'
+          )
+
+          echo "go_version=${go_version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Setup Go
         uses: actions/setup-go@v7
         with:
           go-version: ${{ steps.go.outputs.go_version }}
 
-      - name: Build `sing-box reF1nd-Test` core (Linux)
+      - name: Build reF1nd-Test Linux
         if: ${{ matrix.goos == 'linux' }}
-        run: go build -v -trimpath -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${ref1nd_test_VERSION}' -s -w -buildid=" -tags "${ref1nd_test_linux_TAGS}" ./cmd/sing-box
+        run: |
+          go build -v -trimpath \
+            -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${ref1nd_test_VERSION}' -s -w -buildid=" \
+            -tags "${ref1nd_test_linux_TAGS}" \
+            ./cmd/sing-box
 
-      - name: Build `sing-box reF1nd-Test` core (Windows)
+      - name: Build reF1nd-Test Windows
         if: ${{ matrix.goos == 'windows' }}
-        run: go build -v -trimpath -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${ref1nd_test_VERSION}' -s -w -buildid=" -tags "${ref1nd_test_windows_TAGS}" ./cmd/sing-box
+        run: |
+          go build -v -trimpath \
+            -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${ref1nd_test_VERSION}' -s -w -buildid=" \
+            -tags "${ref1nd_test_windows_TAGS}" \
+            ./cmd/sing-box
 
-      - name: Upload files to workspace
+      - name: Upload reF1nd-Test artifact
         uses: actions/upload-artifact@v7
         with:
           name: sing-box-ref1nd-test-${{ matrix.name }}
           path: sing-box*
 
+
+  # ============================================================
+  # sing-box Stable
+  # ============================================================
   singbox_stable_version:
     runs-on: ubuntu-latest
+
     outputs:
       singbox_stable_version: ${{ steps.version.outputs.singbox_stable_version }}
       singbox_stable_time: ${{ steps.version.outputs.singbox_stable_time }}
       singbox_stable_linux_tags: ${{ steps.version.outputs.singbox_stable_linux_tags }}
       singbox_stable_windows_tags: ${{ steps.version.outputs.singbox_stable_windows_tags }}
       singbox_stable_skip_update: ${{ steps.compare.outputs.skip_update }}
+
     steps:
-      - name: Get `sing-box Stable` version
+      - name: Get sing-box Stable version
         id: version
+        shell: bash
         run: |
+          set -euo pipefail
+
           while true; do
-            latest=$(curl -sSL https://api.github.com/repos/SagerNet/sing-box/releases/latest)
-            singbox_stable_version=$(echo "${latest}" | jq -r '.tag_name' | sed 's/^v//')
-            if [[ -n "${singbox_stable_version}" && "${singbox_stable_version}" != "null" ]]; then
-              singbox_stable_time=$(echo "${latest}" | jq -r '.published_at // .created_at' | xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d')
+            latest=$(curl -fsSL "https://api.github.com/repos/SagerNet/sing-box/releases/latest")
+
+            singbox_stable_version=$(
+              echo "${latest}" |
+              jq -r '.tag_name' |
+              sed 's/^v//'
+            )
+
+            if [[ -n "${singbox_stable_version}" &&
+                  "${singbox_stable_version}" != "null" ]]; then
+
+              singbox_stable_time=$(
+                echo "${latest}" |
+                jq -r '.published_at // .created_at' |
+                xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d'
+              )
+
               echo "singbox_stable_version=${singbox_stable_version}" >> "${GITHUB_OUTPUT}"
               echo "singbox_stable_time=${singbox_stable_time}" >> "${GITHUB_OUTPUT}"
+
               break
             fi
-            echo "未获取到 sing-box Stable 版本号，将在 10 秒后重试..."
+
+            echo "未获取到 sing-box Stable 版本号，10 秒后重试..."
             sleep 10
           done
 
           echo "singbox_stable_linux_tags=with_quic,with_utls,with_clash_api" >> "${GITHUB_OUTPUT}"
           echo "singbox_stable_windows_tags=with_gvisor,with_quic,with_utls,with_clash_api,with_tailscale" >> "${GITHUB_OUTPUT}"
 
-      - name: Compare `sing-box Stable` versions with current release
+      - name: Compare sing-box Stable version with current release
         id: compare
+        shell: bash
         run: |
-          current_body=$(curl -sSL "https://api.github.com/repos/${{ github.repository }}/releases/tags/sing-box" | jq -r '.body // ""')
-          arch="sing-box Stable|${{ steps.version.outputs.singbox_stable_version }}|${{ steps.version.outputs.singbox_stable_time }}"
-          IFS="|" read -r name version time <<< "$arch"
-          if echo "${current_body}" | grep -q "${name}.*${version}.*${time}"; then
-            echo "当前 ${name} 版本已是最新版本 v${version}，无需更新"
-            skip_update=true
-          else
-            echo "当前 ${name} 版本较低，需要更新最新版本至 v${version}"
-            skip_update=false
-          fi
-          echo "skip_update=$skip_update" >> "${GITHUB_OUTPUT}"
+          set -euo pipefail
 
+          current_body=$(
+            curl -fsSL \
+              "https://api.github.com/repos/${{ github.repository }}/releases/tags/sing-box" |
+            jq -r '.body // ""'
+          )
+
+          name="sing-box Stable"
+          version="${{ steps.version.outputs.singbox_stable_version }}"
+          time="${{ steps.version.outputs.singbox_stable_time }}"
+
+          if echo "${current_body}" |
+            grep -q "${name}.*${version}.*${time}"; then
+
+            echo "当前 ${name} 版本已是最新版本 v${version}"
+            echo "无需更新"
+
+            echo "skip_update=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "当前 ${name} 版本较低"
+            echo "需要更新至 v${version}"
+
+            echo "skip_update=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+
+  # ============================================================
+  # sing-box Stable Cross Compile
+  # ============================================================
   singbox_stable_cross:
     runs-on: ubuntu-latest
+
     if: ${{ needs.singbox_stable_version.outputs.singbox_stable_skip_update != 'true' }}
+
+    needs:
+      - singbox_stable_version
+
     strategy:
+      fail-fast: false
+
       matrix:
         include:
           # Linux
-          - { name: linux-amd64-v1, goos: linux, goarch: amd64, goamd64: v1, variant: musl }
-          - { name: linux-amd64-v3, goos: linux, goarch: amd64, goamd64: v3, variant: musl }
+          - { name: linux-amd64-v1, goos: linux, goarch: amd64, goamd64: v1 }
+          - { name: linux-amd64-v3, goos: linux, goarch: amd64, goamd64: v3 }
           - { name: linux-armv5, goos: linux, goarch: arm, goarm: 5 }
           - { name: linux-armv6, goos: linux, goarch: arm, goarm: 6 }
-          - { name: linux-armv7, goos: linux, goarch: arm, goarm: 7, variant: musl }
-          - { name: linux-arm64, goos: linux, goarch: arm64, variant: musl }
+          - { name: linux-armv7, goos: linux, goarch: arm, goarm: 7 }
+          - { name: linux-arm64, goos: linux, goarch: arm64 }
           - { name: linux-mips-softfloat, goos: linux, goarch: mips, gomips: softfloat }
           - { name: linux-mipsle-softfloat, goos: linux, goarch: mipsle, gomips: softfloat }
           - { name: linux-mipsle-hardfloat, goos: linux, goarch: mipsle, gomips: hardfloat }
+
           # Windows
           - { name: windows-amd64-v1, goos: windows, goarch: amd64, goamd64: v1 }
           - { name: windows-amd64-v3, goos: windows, goarch: amd64, goamd64: v3 }
           - { name: windows-arm64, goos: windows, goarch: arm64 }
 
-      fail-fast: false
-    needs:
-      - singbox_stable_version
     env:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
@@ -415,107 +727,180 @@ jobs:
       GOARM: ${{ matrix.goarm }}
       GOMIPS: ${{ matrix.gomips }}
       CGO_ENABLED: 0
+
       singbox_stable_VERSION: ${{ needs.singbox_stable_version.outputs.singbox_stable_version }}
       singbox_stable_linux_TAGS: ${{ needs.singbox_stable_version.outputs.singbox_stable_linux_tags }}
       singbox_stable_windows_TAGS: ${{ needs.singbox_stable_version.outputs.singbox_stable_windows_tags }}
+
     steps:
-      - name: Checkout `SagerNet/sing-box`
+      - name: Checkout SagerNet Stable
         uses: actions/checkout@v7
         with:
           repository: SagerNet/sing-box
           ref: stable
+          fetch-depth: 1
 
-      - name: Get `Go` version
+      - name: Get Go version
         id: go
+        shell: bash
         run: |
-          echo "go_version=$(curl -sSL https://raw.githubusercontent.com/SagerNet/sing-box/stable/.github/workflows/build.yml | grep 'go-version:' | head -n 1 | awk '{print $2}')" >> "${GITHUB_OUTPUT}"
+          set -euo pipefail
 
-      - name: Setup `Go`
+          go_version=$(
+            curl -fsSL \
+              https://raw.githubusercontent.com/SagerNet/sing-box/stable/.github/workflows/build.yml |
+            grep 'go-version:' |
+            head -n 1 |
+            awk '{print $2}'
+          )
+
+          echo "go_version=${go_version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Setup Go
         uses: actions/setup-go@v7
         with:
           go-version: ${{ steps.go.outputs.go_version }}
 
-      - name: Build `sing-box Stable` core (Linux)
+      - name: Build sing-box Stable Linux
         if: ${{ matrix.goos == 'linux' }}
-        run: go build -v -trimpath -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${singbox_stable_VERSION}' -s -w -buildid=" -tags "${singbox_stable_linux_TAGS}" ./cmd/sing-box
+        run: |
+          go build -v -trimpath \
+            -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${singbox_stable_VERSION}' -s -w -buildid=" \
+            -tags "${singbox_stable_linux_TAGS}" \
+            ./cmd/sing-box
 
-      - name: Build `sing-box Stable` core (Windows)
+      - name: Build sing-box Stable Windows
         if: ${{ matrix.goos == 'windows' }}
-        run: go build -v -trimpath -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${singbox_stable_VERSION}' -s -w -buildid=" -tags "${singbox_stable_windows_TAGS}" ./cmd/sing-box
+        run: |
+          go build -v -trimpath \
+            -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${singbox_stable_VERSION}' -s -w -buildid=" \
+            -tags "${singbox_stable_windows_TAGS}" \
+            ./cmd/sing-box
 
-      - name: Upload files to workspace
+      - name: Upload sing-box Stable artifact
         uses: actions/upload-artifact@v7
         with:
           name: sing-box-stable-${{ matrix.name }}
           path: sing-box*
 
+
+  # ============================================================
+  # sing-box Test
+  # ============================================================
   singbox_test_version:
     runs-on: ubuntu-latest
+
     outputs:
       singbox_test_version: ${{ steps.version.outputs.singbox_test_version }}
       singbox_test_time: ${{ steps.version.outputs.singbox_test_time }}
       singbox_test_linux_tags: ${{ steps.version.outputs.singbox_test_linux_tags }}
       singbox_test_windows_tags: ${{ steps.version.outputs.singbox_test_windows_tags }}
       singbox_test_skip_update: ${{ steps.compare.outputs.skip_update }}
+
     steps:
-      - name: Get `sing-box Test` version
+      - name: Get sing-box Test version
         id: version
+        shell: bash
         run: |
+          set -euo pipefail
+
           while true; do
-            releases=$(curl -sSL https://api.github.com/repos/SagerNet/sing-box/releases)
-            singbox_test_version=$(echo "${releases}" | jq -r '.[] | select(.tag_name | test("alpha|beta|rc")) | .tag_name' | head -n 1 | sed 's/^v//')
-            if [[ -n "${singbox_test_version}" && "${singbox_test_version}" != "null" ]]; then
-              singbox_test_time=$(echo "${releases}" | jq -r '.[] | select(.tag_name | test("alpha|beta|rc")) | (.published_at // .created_at)' | head -n 1 | xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d')
+            releases=$(curl -fsSL "https://api.github.com/repos/SagerNet/sing-box/releases")
+
+            singbox_test_version=$(
+              echo "${releases}" |
+              jq -r '.[] | select(.tag_name | test("alpha|beta|rc")) | .tag_name' |
+              head -n 1 |
+              sed 's/^v//' ||
+              true
+            )
+
+            if [[ -n "${singbox_test_version}" &&
+                  "${singbox_test_version}" != "null" ]]; then
+
+              singbox_test_time=$(
+                echo "${releases}" |
+                jq -r '.[] | select(.tag_name | test("alpha|beta|rc")) | (.published_at // .created_at)' |
+                head -n 1 |
+                xargs -I {} date -d '{} +8 hours' '+%Y-%m-%d'
+              )
+
               echo "singbox_test_version=${singbox_test_version}" >> "${GITHUB_OUTPUT}"
               echo "singbox_test_time=${singbox_test_time}" >> "${GITHUB_OUTPUT}"
+
               break
             fi
-            echo "未获取到 sing-box Test 版本号，将在 10 秒后重试..."
+
+            echo "未获取到 sing-box Test 版本号，10 秒后重试..."
             sleep 10
           done
 
           echo "singbox_test_linux_tags=with_quic,with_utls,with_clash_api" >> "${GITHUB_OUTPUT}"
           echo "singbox_test_windows_tags=with_gvisor,with_quic,with_utls,with_clash_api,with_tailscale" >> "${GITHUB_OUTPUT}"
 
-      - name: Compare `sing-box Test` versions with current release
+      - name: Compare sing-box Test version with current release
         id: compare
+        shell: bash
         run: |
-          current_body=$(curl -sSL "https://api.github.com/repos/${{ github.repository }}/releases/tags/sing-box" | jq -r '.body // ""')
-          arch="sing-box Test|${{ steps.version.outputs.singbox_test_version }}|${{ steps.version.outputs.singbox_test_time }}"
-          IFS="|" read -r name version time <<< "$arch"
-          if echo "${current_body}" | grep -q "${name}.*${version}.*${time}"; then
-            echo "当前 ${name} 版本已是最新版本 v${version}，无需更新"
-            skip_update=true
-          else
-            echo "当前 ${name} 版本较低，需要更新最新版本至 v${version}"
-            skip_update=false
-          fi
-          echo "skip_update=$skip_update" >> "${GITHUB_OUTPUT}"
+          set -euo pipefail
 
+          current_body=$(
+            curl -fsSL \
+              "https://api.github.com/repos/${{ github.repository }}/releases/tags/sing-box" |
+            jq -r '.body // ""'
+          )
+
+          name="sing-box Test"
+          version="${{ steps.version.outputs.singbox_test_version }}"
+          time="${{ steps.version.outputs.singbox_test_time }}"
+
+          if echo "${current_body}" |
+            grep -q "${name}.*${version}.*${time}"; then
+
+            echo "当前 ${name} 版本已是最新版本 v${version}"
+            echo "无需更新"
+
+            echo "skip_update=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "当前 ${name} 版本较低"
+            echo "需要更新至 v${version}"
+
+            echo "skip_update=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+
+  # ============================================================
+  # sing-box Test Cross Compile
+  # ============================================================
   singbox_test_cross:
     runs-on: ubuntu-latest
+
     if: ${{ needs.singbox_test_version.outputs.singbox_test_skip_update != 'true' }}
+
+    needs:
+      - singbox_test_version
+
     strategy:
+      fail-fast: false
+
       matrix:
         include:
           # Linux
-          - { name: linux-amd64-v1, goos: linux, goarch: amd64, goamd64: v1, variant: musl }
-          - { name: linux-amd64-v3, goos: linux, goarch: amd64, goamd64: v3, variant: musl }
+          - { name: linux-amd64-v1, goos: linux, goarch: amd64, goamd64: v1 }
+          - { name: linux-amd64-v3, goos: linux, goarch: amd64, goamd64: v3 }
           - { name: linux-armv5, goos: linux, goarch: arm, goarm: 5 }
           - { name: linux-armv6, goos: linux, goarch: arm, goarm: 6 }
-          - { name: linux-armv7, goos: linux, goarch: arm, goarm: 7, variant: musl }
-          - { name: linux-arm64, goos: linux, goarch: arm64, variant: musl }
+          - { name: linux-armv7, goos: linux, goarch: arm, goarm: 7 }
+          - { name: linux-arm64, goos: linux, goarch: arm64 }
           - { name: linux-mips-softfloat, goos: linux, goarch: mips, gomips: softfloat }
           - { name: linux-mipsle-softfloat, goos: linux, goarch: mipsle, gomips: softfloat }
           - { name: linux-mipsle-hardfloat, goos: linux, goarch: mipsle, gomips: hardfloat }
+
           # Windows
           - { name: windows-amd64-v1, goos: windows, goarch: amd64, goamd64: v1 }
           - { name: windows-amd64-v3, goos: windows, goarch: amd64, goamd64: v3 }
           - { name: windows-arm64, goos: windows, goarch: arm64 }
 
-      fail-fast: false
-    needs:
-      - singbox_test_version
     env:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
@@ -523,42 +908,71 @@ jobs:
       GOARM: ${{ matrix.goarm }}
       GOMIPS: ${{ matrix.gomips }}
       CGO_ENABLED: 0
+
       singbox_test_VERSION: ${{ needs.singbox_test_version.outputs.singbox_test_version }}
       singbox_test_linux_TAGS: ${{ needs.singbox_test_version.outputs.singbox_test_linux_tags }}
       singbox_test_windows_TAGS: ${{ needs.singbox_test_version.outputs.singbox_test_windows_tags }}
+
     steps:
-      - name: Checkout `SagerNet/sing-box`
+      - name: Checkout SagerNet Testing
         uses: actions/checkout@v7
         with:
           repository: SagerNet/sing-box
           ref: testing
+          fetch-depth: 1
 
-      - name: Get `Go` version
+      - name: Get Go version
         id: go
+        shell: bash
         run: |
-          echo "go_version=$(curl -sSL https://raw.githubusercontent.com/SagerNet/sing-box/testing/.github/workflows/build.yml | grep 'go-version:' | head -n 1 | awk '{print $2}')" >> "${GITHUB_OUTPUT}"
+          set -euo pipefail
 
-      - name: Setup `Go`
+          go_version=$(
+            curl -fsSL \
+              https://raw.githubusercontent.com/SagerNet/sing-box/testing/.github/workflows/build.yml |
+            grep 'go-version:' |
+            head -n 1 |
+            awk '{print $2}'
+          )
+
+          echo "go_version=${go_version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Setup Go
         uses: actions/setup-go@v7
         with:
           go-version: ${{ steps.go.outputs.go_version }}
 
-      - name: Build `sing-box Test` core (Linux)
+      - name: Build sing-box Test Linux
         if: ${{ matrix.goos == 'linux' }}
-        run: go build -v -trimpath -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${singbox_test_VERSION}' -s -w -buildid=" -tags "${singbox_test_linux_TAGS}" ./cmd/sing-box
+        run: |
+          go build -v -trimpath \
+            -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${singbox_test_VERSION}' -s -w -buildid=" \
+            -tags "${singbox_test_linux_TAGS}" \
+            ./cmd/sing-box
 
-      - name: Build `sing-box Test` core (Windows)
+      - name: Build sing-box Test Windows
         if: ${{ matrix.goos == 'windows' }}
-        run: go build -v -trimpath -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${singbox_test_VERSION}' -s -w -buildid=" -tags "${singbox_test_windows_TAGS}" ./cmd/sing-box
+        run: |
+          go build -v -trimpath \
+            -ldflags "-X 'github.com/sagernet/sing-box/constant.Version=${singbox_test_VERSION}' -s -w -buildid=" \
+            -tags "${singbox_test_windows_TAGS}" \
+            ./cmd/sing-box
 
-      - name: Upload files to workspace
+      - name: Upload sing-box Test artifact
         uses: actions/upload-artifact@v7
         with:
           name: sing-box-test-${{ matrix.name }}
           path: sing-box*
+
+
+  # ============================================================
+  # 汇总、压缩、Release
+  # ============================================================
   push_sing-box:
     runs-on: ubuntu-latest
+
     if: always()
+
     needs:
       - ref1nd_stable_version
       - ref1nd_stable_cross
@@ -570,132 +984,336 @@ jobs:
       - singbox_stable_cross
       - singbox_test_version
       - singbox_test_cross
+
     env:
       ref1nd_stable_VERSION: ${{ needs.ref1nd_stable_version.outputs.ref1nd_stable_version }}
       ref1nd_stable_TIME: ${{ needs.ref1nd_stable_version.outputs.ref1nd_stable_time }}
       ref1nd_stable_Skip_update: ${{ needs.ref1nd_stable_version.outputs.ref1nd_stable_skip_update }}
+
       ref1nd_test_VERSION: ${{ needs.ref1nd_test_version.outputs.ref1nd_test_version }}
       ref1nd_test_TIME: ${{ needs.ref1nd_test_version.outputs.ref1nd_test_time }}
       ref1nd_test_Skip_update: ${{ needs.ref1nd_test_version.outputs.ref1nd_test_skip_update }}
+
       singbox_stable_VERSION: ${{ needs.singbox_stable_version.outputs.singbox_stable_version }}
       singbox_stable_TIME: ${{ needs.singbox_stable_version.outputs.singbox_stable_time }}
       singbox_stable_Skip_update: ${{ needs.singbox_stable_version.outputs.singbox_stable_skip_update }}
+
       singbox_test_VERSION: ${{ needs.singbox_test_version.outputs.singbox_test_version }}
       singbox_test_TIME: ${{ needs.singbox_test_version.outputs.singbox_test_time }}
       singbox_test_Skip_update: ${{ needs.singbox_test_version.outputs.singbox_test_skip_update }}
+
       puernya_VERSION: ${{ needs.puernya.outputs.puernya_version }}
       puernya_TIME: ${{ needs.puernya.outputs.puernya_time }}
-    steps: 
+      puernya_Skip_update: ${{ needs.puernya.outputs.puernya_skip_update }}
+
+    steps:
       - name: Clone Repository
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
 
+      # ----------------------------------------------------------
+      # 下载 Artifact
+      # ----------------------------------------------------------
       - name: Download files from workspace
-        if: ${{ env.ref1nd_stable_Skip_update != 'true' || env.ref1nd_test_Skip_update != 'true' || env.singbox_stable_Skip_update != 'true' || env.singbox_test_Skip_update != 'true' || needs.puernya.outputs.puernya_skip_update != 'true' }}
+        if: >
+          env.ref1nd_stable_Skip_update != 'true' ||
+          env.ref1nd_test_Skip_update != 'true' ||
+          env.singbox_stable_Skip_update != 'true' ||
+          env.singbox_test_Skip_update != 'true' ||
+          env.puernya_Skip_update != 'true'
         uses: actions/download-artifact@v8
         with:
           path: ./tmp/
 
-      - name: Move files and zip `sing-box PuerNya` cores by `tar`
-        if: ${{ needs.puernya.outputs.puernya_skip_update != 'true' }}
+      # ----------------------------------------------------------
+      # PuerNya
+      # ----------------------------------------------------------
+      - name: Move and zip PuerNya cores
+        if: ${{ env.puernya_Skip_update != 'true' }}
+        shell: bash
         run: |
-          # Linux
-          mkdir -p ./sing-box/
+          set -euo pipefail
+
+          mkdir -p ./sing-box
+
           archs=(amd64 armv7 arm64)
+
           for arch in "${archs[@]}"; do
-            mv -f "./tmp/sing-box-puernya-linux-${arch}/sing-box" ./tmp/sing-box
+            src="./tmp/sing-box-puernya-linux-${arch}/sing-box"
+
+            if [[ ! -f "${src}" ]]; then
+              echo "缺少 PuerNya ${arch} 构建文件：${src}"
+              exit 1
+            fi
+
+            mv -f "${src}" ./tmp/sing-box
             chmod +x ./tmp/sing-box
-            tar --no-same-owner -czf "./sing-box/sing-box-puernya-linux-${arch}.tar.gz" -C ./tmp/ sing-box
+
+            tar --no-same-owner \
+              -czf "./sing-box/sing-box-puernya-linux-${arch}.tar.gz" \
+              -C ./tmp/ sing-box
           done
 
-          
-      
-      - name: Download `sing-box reF1nd-Stable` files
+      # ----------------------------------------------------------
+      # reF1nd Stable
+      # ----------------------------------------------------------
+      - name: Download reF1nd-Stable files
         if: ${{ env.ref1nd_stable_Skip_update != 'true' }}
+        shell: bash
         run: |
-          # Linux (Ready for compress cores by `UPX`)
-          mkdir -p ./sing-box/
-          linux_archs=(amd64-v1 amd64-v3 armv5 armv6 armv7 arm64 mips-softfloat mipsle-softfloat mipsle-hardfloat)
-          for i in "${!linux_archs[@]}"; do
-            mv -f "./tmp/sing-box-ref1nd-stable-linux-${linux_archs[i]}/sing-box" "./sing-box/sing-box-ref1nd-stable-linux-${linux_archs[i]}.upx"
-            chmod +x "./sing-box/sing-box-ref1nd-stable-linux-${linux_archs[i]}.upx"
+          set -euo pipefail
+
+          mkdir -p ./sing-box
+
+          linux_archs=(
+            amd64-v1
+            amd64-v3
+            armv5
+            armv6
+            armv7
+            arm64
+            mips-softfloat
+            mipsle-softfloat
+            mipsle-hardfloat
+          )
+
+          for arch in "${linux_archs[@]}"; do
+            src="./tmp/sing-box-ref1nd-stable-linux-${arch}/sing-box"
+
+            if [[ ! -f "${src}" ]]; then
+              echo "缺少 reF1nd-Stable Linux ${arch} 文件"
+              exit 1
+            fi
+
+            mv -f "${src}" \
+              "./sing-box/sing-box-ref1nd-stable-linux-${arch}.upx"
+
+            chmod +x \
+              "./sing-box/sing-box-ref1nd-stable-linux-${arch}.upx"
           done
 
-          # Windows
-          windows_archs=(amd64-v1 amd64-v3 arm64)
-          for j in "${!windows_archs[@]}"; do
-            mv -f "./tmp/sing-box-ref1nd-stable-windows-${windows_archs[j]}/sing-box.exe" "./sing-box/sing-box-ref1nd-stable-windows-${windows_archs[j]}.exe"
+          windows_archs=(
+            amd64-v1
+            amd64-v3
+            arm64
+          )
+
+          for arch in "${windows_archs[@]}"; do
+            src="./tmp/sing-box-ref1nd-stable-windows-${arch}/sing-box.exe"
+
+            if [[ ! -f "${src}" ]]; then
+              echo "缺少 reF1nd-Stable Windows ${arch} 文件"
+              exit 1
+            fi
+
+            mv -f "${src}" \
+              "./sing-box/sing-box-ref1nd-stable-windows-${arch}.exe"
           done
 
-      - name: Download `sing-box reF1nd-Test` files
+      # ----------------------------------------------------------
+      # reF1nd Test
+      # ----------------------------------------------------------
+      - name: Download reF1nd-Test files
         if: ${{ env.ref1nd_test_Skip_update != 'true' }}
+        shell: bash
         run: |
-          # Linux (Ready for compress cores by `UPX`)
-          mkdir -p ./sing-box/
-          linux_archs=(amd64-v1 amd64-v3 armv5 armv6 armv7 arm64 mips-softfloat mipsle-softfloat mipsle-hardfloat)
-          for i in "${!linux_archs[@]}"; do
-            mv -f "./tmp/sing-box-ref1nd-test-linux-${linux_archs[i]}/sing-box" "./sing-box/sing-box-ref1nd-test-linux-${linux_archs[i]}.upx"
-            chmod +x "./sing-box/sing-box-ref1nd-test-linux-${linux_archs[i]}.upx"
+          set -euo pipefail
+
+          mkdir -p ./sing-box
+
+          linux_archs=(
+            amd64-v1
+            amd64-v3
+            armv5
+            armv6
+            armv7
+            arm64
+            mips-softfloat
+            mipsle-softfloat
+            mipsle-hardfloat
+          )
+
+          for arch in "${linux_archs[@]}"; do
+            src="./tmp/sing-box-ref1nd-test-linux-${arch}/sing-box"
+
+            if [[ ! -f "${src}" ]]; then
+              echo "缺少 reF1nd-Test Linux ${arch} 文件"
+              exit 1
+            fi
+
+            mv -f "${src}" \
+              "./sing-box/sing-box-ref1nd-test-linux-${arch}.upx"
+
+            chmod +x \
+              "./sing-box/sing-box-ref1nd-test-linux-${arch}.upx"
           done
 
-          # Windows
-          windows_archs=(amd64-v1 amd64-v3 arm64)
-          for j in "${!windows_archs[@]}"; do
-            mv -f "./tmp/sing-box-ref1nd-test-windows-${windows_archs[j]}/sing-box.exe" "./sing-box/sing-box-ref1nd-test-windows-${windows_archs[j]}.exe"
+          windows_archs=(
+            amd64-v1
+            amd64-v3
+            arm64
+          )
+
+          for arch in "${windows_archs[@]}"; do
+            src="./tmp/sing-box-ref1nd-test-windows-${arch}/sing-box.exe"
+
+            if [[ ! -f "${src}" ]]; then
+              echo "缺少 reF1nd-Test Windows ${arch} 文件"
+              exit 1
+            fi
+
+            mv -f "${src}" \
+              "./sing-box/sing-box-ref1nd-test-windows-${arch}.exe"
           done
 
-      - name: Download `sing-box Stable` files
+      # ----------------------------------------------------------
+      # sing-box Stable
+      # ----------------------------------------------------------
+      - name: Download sing-box Stable files
         if: ${{ env.singbox_stable_Skip_update != 'true' }}
+        shell: bash
         run: |
-          # Linux (Ready for compress cores by `UPX`)
-          mkdir -p ./sing-box/
-          linux_archs=(amd64-v1 amd64-v3 armv5 armv6 armv7 arm64 mips-softfloat mipsle-softfloat mipsle-hardfloat)
-          for i in "${!linux_archs[@]}"; do
-            mv -f "./tmp/sing-box-stable-linux-${linux_archs[i]}/sing-box" "./sing-box/sing-box-stable-linux-${linux_archs[i]}.upx"
-            chmod +x "./sing-box/sing-box-stable-linux-${linux_archs[i]}.upx"
+          set -euo pipefail
+
+          mkdir -p ./sing-box
+
+          linux_archs=(
+            amd64-v1
+            amd64-v3
+            armv5
+            armv6
+            armv7
+            arm64
+            mips-softfloat
+            mipsle-softfloat
+            mipsle-hardfloat
+          )
+
+          for arch in "${linux_archs[@]}"; do
+            src="./tmp/sing-box-stable-linux-${arch}/sing-box"
+
+            if [[ ! -f "${src}" ]]; then
+              echo "缺少 sing-box Stable Linux ${arch} 文件"
+              exit 1
+            fi
+
+            mv -f "${src}" \
+              "./sing-box/sing-box-stable-linux-${arch}.upx"
+
+            chmod +x \
+              "./sing-box/sing-box-stable-linux-${arch}.upx"
           done
 
-          # Windows
-          windows_archs=(amd64-v1 amd64-v3 arm64)
-          for j in "${!windows_archs[@]}"; do
-            mv -f "./tmp/sing-box-stable-windows-${windows_archs[j]}/sing-box.exe" "./sing-box/sing-box-stable-windows-${windows_archs[j]}.exe"
+          windows_archs=(
+            amd64-v1
+            amd64-v3
+            arm64
+          )
+
+          for arch in "${windows_archs[@]}"; do
+            src="./tmp/sing-box-stable-windows-${arch}/sing-box.exe"
+
+            if [[ ! -f "${src}" ]]; then
+              echo "缺少 sing-box Stable Windows ${arch} 文件"
+              exit 1
+            fi
+
+            mv -f "${src}" \
+              "./sing-box/sing-box-stable-windows-${arch}.exe"
           done
 
-      - name: Download `sing-box Test` files
+      # ----------------------------------------------------------
+      # sing-box Test
+      # ----------------------------------------------------------
+      - name: Download sing-box Test files
         if: ${{ env.singbox_test_Skip_update != 'true' }}
+        shell: bash
         run: |
-          # Linux (Ready for compress cores by `UPX`)
-          mkdir -p ./sing-box/
-          linux_archs=(amd64-v1 amd64-v3 armv5 armv6 armv7 arm64 mips-softfloat mipsle-softfloat mipsle-hardfloat)
-          for i in "${!linux_archs[@]}"; do
-            mv -f "./tmp/sing-box-test-linux-${linux_archs[i]}/sing-box" "./sing-box/sing-box-test-linux-${linux_archs[i]}.upx"
-            chmod +x "./sing-box/sing-box-test-linux-${linux_archs[i]}.upx"
+          set -euo pipefail
+
+          mkdir -p ./sing-box
+
+          linux_archs=(
+            amd64-v1
+            amd64-v3
+            armv5
+            armv6
+            armv7
+            arm64
+            mips-softfloat
+            mipsle-softfloat
+            mipsle-hardfloat
+          )
+
+          for arch in "${linux_archs[@]}"; do
+            src="./tmp/sing-box-test-linux-${arch}/sing-box"
+
+            if [[ ! -f "${src}" ]]; then
+              echo "缺少 sing-box Test Linux ${arch} 文件"
+              exit 1
+            fi
+
+            mv -f "${src}" \
+              "./sing-box/sing-box-test-linux-${arch}.upx"
+
+            chmod +x \
+              "./sing-box/sing-box-test-linux-${arch}.upx"
           done
 
-          # Windows
-          windows_archs=(amd64-v1 amd64-v3 arm64)
-          for j in "${!windows_archs[@]}"; do
-            mv -f "./tmp/sing-box-test-windows-${windows_archs[j]}/sing-box.exe" "./sing-box/sing-box-test-windows-${windows_archs[j]}.exe"
+          windows_archs=(
+            amd64-v1
+            amd64-v3
+            arm64
+          )
+
+          for arch in "${windows_archs[@]}"; do
+            src="./tmp/sing-box-test-windows-${arch}/sing-box.exe"
+
+            if [[ ! -f "${src}" ]]; then
+              echo "缺少 sing-box Test Windows ${arch} 文件"
+              exit 1
+            fi
+
+            mv -f "${src}" \
+              "./sing-box/sing-box-test-windows-${arch}.exe"
           done
 
-      - name: Setup `UPX` and compress `sing-box` files
-        if: ${{ env.ref1nd_stable_Skip_update != 'true' || env.ref1nd_test_Skip_update != 'true' || env.singbox_stable_Skip_update != 'true' || env.singbox_test_Skip_update != 'true' }}
+      # ----------------------------------------------------------
+      # UPX
+      # ----------------------------------------------------------
+      - name: Setup UPX and compress sing-box files
+        if: >
+          env.ref1nd_stable_Skip_update != 'true' ||
+          env.ref1nd_test_Skip_update != 'true' ||
+          env.singbox_stable_Skip_update != 'true' ||
+          env.singbox_test_Skip_update != 'true'
         uses: crazy-max/ghaction-upx@v4
         with:
           version: latest
           files: ./sing-box/*.upx
 
-      - name: Check if `sing-box` files exist
+      # ----------------------------------------------------------
+      # 检查是否存在新文件
+      # ----------------------------------------------------------
+      - name: Check sing-box files
         id: check
+        shell: bash
         run: |
-          if ls ./sing-box/* >/dev/null 2>&1; then
+          set -euo pipefail
+
+          if compgen -G "./sing-box/*" > /dev/null; then
             echo "sing-box 文件夹内存在新内核文件，需要上传"
-            echo "singbox_exist=true" >> $GITHUB_OUTPUT
+            echo "singbox_exist=true" >> "${GITHUB_OUTPUT}"
           else
             echo "sing-box 文件夹内没有新内核文件，无需上传"
-            echo "singbox_exist=false" >> $GITHUB_OUTPUT
+            echo "singbox_exist=false" >> "${GITHUB_OUTPUT}"
           fi
 
-      - name: Release and upload `sing-box` assets
+      # ----------------------------------------------------------
+      # Release
+      # ----------------------------------------------------------
+      - name: Release and upload sing-box assets
         if: ${{ steps.check.outputs.singbox_exist == 'true' }}
         uses: svenstaro/upload-release-action@v2
         with:
@@ -703,77 +1321,152 @@ jobs:
           release_name: sing-box
           tag: sing-box
           overwrite: true
+
           body: |
-            # 📝 Release Notes 
-            1. 更新 [sing-box reF1nd-Stable 版](https://github.com/reF1nd/sing-box/tree/reF1nd-stable)至 v${{ env.ref1nd_stable_VERSION }}，发布于 ${{ env.ref1nd_stable_TIME }}
-            2. 更新 [sing-box reF1nd-Test 版](https://github.com/reF1nd/sing-box/tree/reF1nd-testing)至 v${{ env.ref1nd_test_VERSION }}，发布于 ${{ env.ref1nd_test_TIME }}
-            3. 更新 [sing-box Stable 版](https://github.com/SagerNet/sing-box/tree/stable)至 v${{ env.singbox_stable_VERSION }}，发布于 ${{ env.singbox_stable_TIME }}
-            4. 更新 [sing-box Test 版](https://github.com/SagerNet/sing-box/tree/testing)至 v${{ env.singbox_test_VERSION }}，发布于 ${{ env.singbox_test_TIME }}
+            # 📝 Release Notes
+
+            1. 更新 [sing-box reF1nd-Stable 版](https://github.com/reF1nd/sing-box/tree/reF1nd-stable) 至 v${{ env.ref1nd_stable_VERSION }}，发布于 ${{ env.ref1nd_stable_TIME }}
+
+            2. 更新 [sing-box reF1nd-Test 版](https://github.com/reF1nd/sing-box/tree/reF1nd-testing) 至 v${{ env.ref1nd_test_VERSION }}，发布于 ${{ env.ref1nd_test_TIME }}
+
+            3. 更新 [sing-box Stable 版](https://github.com/SagerNet/sing-box/tree/stable) 至 v${{ env.singbox_stable_VERSION }}，发布于 ${{ env.singbox_stable_TIME }}
+
+            4. 更新 [sing-box Test 版](https://github.com/SagerNet/sing-box/tree/testing) 至 v${{ env.singbox_test_VERSION }}，发布于 ${{ env.singbox_test_TIME }}
+
             5. 更新 [sing-box PuerNya 版](https://github.com/PuerNya/sing-box/tree/building) 至 v${{ env.puernya_VERSION }}，发布于 ${{ env.puernya_TIME }}
+
           file_glob: true
           file: ./sing-box/*
 
-      - name: Set outputs for update_readme
+      # ----------------------------------------------------------
+      # 输出给 Update_Readme
+      # ----------------------------------------------------------
+      - name: Set outputs for Update_Readme
         id: vars
+        shell: bash
         run: |
-          echo "singbox_stable_VERSION=${singbox_stable_VERSION}" >> $GITHUB_OUTPUT
-          echo "singbox_stable_TIME=${singbox_stable_TIME}" >> $GITHUB_OUTPUT
-          echo "singbox_test_VERSION=${singbox_test_VERSION}" >> $GITHUB_OUTPUT
-          echo "singbox_test_TIME=${singbox_test_TIME}" >> $GITHUB_OUTPUT
-          echo "puernya_version=${puernya_VERSION}" >> $GITHUB_OUTPUT
-          echo "puernya_time=${puernya_TIME}" >> $GITHUB_OUTPUT
-          echo "ref1nd_stable_VERSION=${ref1nd_stable_VERSION}" >> $GITHUB_OUTPUT
-          echo "ref1nd_stable_TIME=${ref1nd_stable_TIME}" >> $GITHUB_OUTPUT
-          echo "ref1nd_test_VERSION=${ref1nd_test_VERSION}" >> $GITHUB_OUTPUT
-          echo "ref1nd_test_TIME=${ref1nd_test_TIME}" >> $GITHUB_OUTPUT
+          {
+            echo "singbox_stable_VERSION=${singbox_stable_VERSION}"
+            echo "singbox_stable_TIME=${singbox_stable_TIME}"
+            echo "singbox_test_VERSION=${singbox_test_VERSION}"
+            echo "singbox_test_TIME=${singbox_test_TIME}"
+            echo "puernya_version=${puernya_VERSION}"
+            echo "puernya_time=${puernya_TIME}"
+            echo "ref1nd_stable_VERSION=${ref1nd_stable_VERSION}"
+            echo "ref1nd_stable_TIME=${ref1nd_stable_TIME}"
+            echo "ref1nd_test_VERSION=${ref1nd_test_VERSION}"
+            echo "ref1nd_test_TIME=${ref1nd_test_TIME}"
+          } >> "${GITHUB_OUTPUT}"
+
     outputs:
       singbox_stable_VERSION: ${{ steps.vars.outputs.singbox_stable_VERSION }}
       singbox_stable_TIME: ${{ steps.vars.outputs.singbox_stable_TIME }}
+
       singbox_test_VERSION: ${{ steps.vars.outputs.singbox_test_VERSION }}
-      singbox_test_TIME : ${{ steps.vars.outputs.singbox_test_TIME }}
+      singbox_test_TIME: ${{ steps.vars.outputs.singbox_test_TIME }}
+
       puernya_version: ${{ steps.vars.outputs.puernya_version }}
       puernya_time: ${{ steps.vars.outputs.puernya_time }}
+
       ref1nd_stable_VERSION: ${{ steps.vars.outputs.ref1nd_stable_VERSION }}
       ref1nd_stable_TIME: ${{ steps.vars.outputs.ref1nd_stable_TIME }}
+
       ref1nd_test_VERSION: ${{ steps.vars.outputs.ref1nd_test_VERSION }}
       ref1nd_test_TIME: ${{ steps.vars.outputs.ref1nd_test_TIME }}
+
+
+  # ============================================================
+  # Update README
+  # ============================================================
   Update_Readme:
     runs-on: ubuntu-latest
+
+    # 保留 always()：
+    # 即使某一个版本检查/构建 Job 被跳过或失败，
+    # 也允许这里继续执行 README 更新。
     if: always()
-    needs: [puernya, push_sing-box]
+
+    needs:
+      - puernya
+      - push_sing-box
+
     steps:
-    - uses: actions/checkout@v7
+      # ----------------------------------------------------------
+      # checkout 当前 workflow 对应代码
+      # ----------------------------------------------------------
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
-    - name: Generate README
-      run: |
-        cat > README.md <<EOF
-        # Sing-Box核心编译
+      # ----------------------------------------------------------
+      # 生成 README
+      # ----------------------------------------------------------
+      - name: Generate README
+        shell: bash
+        run: |
+          set -euo pipefail
 
-        ## sing-box 内核 PuerNya 版
+          cat > README.md <<'EOF'
+          # Sing-Box核心编译
 
-        \`\`\`
-        curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-puernya-linux-amd64.tar.gz | tar -zx -C /usr/local/bin
-        \`\`\`
+          ## sing-box 内核 PuerNya 版
 
-        ## sing-box 内核 reF1nd-Stable 版
+          ```
+          curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-puernya-linux-amd64.tar.gz | tar -zx -C /usr/local/bin
+          ```
 
-        \`\`\`
-        curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-ref1nd-stable-linux-amd64-v3.tar.gz | tar -zx -C /usr/local/bin
-        \`\`\`
+          ## sing-box 内核 reF1nd-Stable 版
 
-        ## Changelog
+          ```
+          curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-ref1nd-stable-linux-amd64-v3.tar.gz | tar -zx -C /usr/local/bin
+          ```
 
-        1. 更新 [sing-box PuerNya 版](https://github.com/PuerNya/sing-box/tree/building)至 v${{ needs.push_sing-box.outputs.puernya_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.puernya_TIME }}
-        2. 更新 [sing-box reF1nd-Stable 版](https://github.com/reF1nd/sing-box/tree/reF1nd-stable)至 v${{ needs.push_sing-box.outputs.ref1nd_stable_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.ref1nd_stable_TIME }}
-        3. 更新 [sing-box reF1nd-Test 版](https://github.com/reF1nd/sing-box/tree/reF1nd-testing)至 v${{ needs.push_sing-box.outputs.ref1nd_test_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.ref1nd_test_TIME }}
-        4. 更新 [sing-box Stable 版](https://github.com/SagerNet/sing-box/tree/stable)至 ${{ needs.push_sing-box.outputs.singbox_stable_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.singbox_stable_TIME }}
-        5. 更新 [sing-box Test 版](https://github.com/SagerNet/sing-box/tree/testing)至 ${{ needs.push_sing-box.outputs.singbox_test_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.singbox_test_TIME }}
-        EOF
+          ## Changelog
 
-    - name: Commit README
-      run: |
-        git config user.name "github-actions"
-        git config user.email "github-actions@github.com"
-        git add README.md
-        git commit -m "Update README" || echo "No changes"
-        git push
+          1. 更新 [sing-box PuerNya 版](https://github.com/PuerNya/sing-box/tree/building) 至 v${{ needs.push_sing-box.outputs.puernya_version }}，发布于 ${{ needs.push_sing-box.outputs.puernya_time }}
+
+          2. 更新 [sing-box reF1nd-Stable 版](https://github.com/reF1nd/sing-box/tree/reF1nd-stable) 至 v${{ needs.push_sing-box.outputs.ref1nd_stable_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.ref1nd_stable_TIME }}
+
+          3. 更新 [sing-box reF1nd-Test 版](https://github.com/reF1nd/sing-box/tree/reF1nd-testing) 至 v${{ needs.push_sing-box.outputs.ref1nd_test_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.ref1nd_test_TIME }}
+
+          4. 更新 [sing-box Stable 版](https://github.com/SagerNet/sing-box/tree/stable) 至 v${{ needs.push_sing-box.outputs.singbox_stable_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.singbox_stable_TIME }}
+
+          5. 更新 [sing-box Test 版](https://github.com/SagerNet/sing-box/tree/testing) 至 v${{ needs.push_sing-box.outputs.singbox_test_VERSION }}，发布于 ${{ needs.push_sing-box.outputs.singbox_test_TIME }}
+          EOF
+
+      # ----------------------------------------------------------
+      # Commit README
+      # ----------------------------------------------------------
+      - name: Commit README
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add README.md
+
+          # README 没有变化时，不执行 commit / pull / push
+          if git diff --cached --quiet; then
+            echo "README 没有变化，无需提交"
+            exit 0
+          fi
+
+          git commit -m "Update README"
+
+          # ------------------------------------------------------
+          # 关键修复：
+          #
+          # Workflow 开始后，main 可能已经出现新的提交。
+          # 这里重新获取远程 main，并把 README 提交 rebase 到
+          # 最新的 origin/main 上。
+          # ------------------------------------------------------
+
+          git fetch origin main
+
+          git rebase origin/main
+
+          # 明确推送当前 HEAD 到远程 main
+          git push origin HEAD:main
