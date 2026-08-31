@@ -533,6 +533,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - ref1nd_stable
+
     if: ${{ needs.ref1nd_stable.outputs.skip != 'true' }}
 
     strategy:
@@ -555,8 +556,21 @@ jobs:
         id: go
         shell: bash
         run: |
-          echo "version=$(curl -sSL https://raw.githubusercontent.com/reF1nd/sing-box/reF1nd-stable/.github/workflows/build.yml | grep 'go-version:' | head -n 1 | awk '{print $2}')" >> "${GITHUB_OUTPUT}"
-          
+          set -euo pipefail
+
+          version="$(
+            curl -fsSL \
+              https://raw.githubusercontent.com/reF1nd/sing-box/reF1nd-stable/.github/workflows/build.yml |
+            grep 'go-version:' |
+            head -n 1 |
+            awk '{print $2}'
+          )"
+
+          [[ -n "$version" ]]
+
+          echo "Go version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
       - name: Setup Go
         uses: actions/setup-go@v7
         with:
@@ -619,6 +633,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - ref1nd_test
+
     if: ${{ needs.ref1nd_test.outputs.skip != 'true' }}
 
     strategy:
@@ -641,7 +656,20 @@ jobs:
         id: go
         shell: bash
         run: |
-          echo "version=$(curl -sSL https://raw.githubusercontent.com/reF1nd/sing-box/reF1nd-testing/.github/workflows/build.yml | grep 'go-version:' | awk 'NR==1 {print $2}')" >> "${GITHUB_OUTPUT}"          
+          set -euo pipefail
+
+          version="$(
+            curl -fsSL \
+              https://raw.githubusercontent.com/reF1nd/sing-box/reF1nd-testing/.github/workflows/build.yml |
+            grep 'go-version:' |
+            head -n 1 |
+            awk '{print $2}'
+          )"
+
+          [[ -n "$version" ]]
+
+          echo "Go version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Setup Go
         uses: actions/setup-go@v7
@@ -705,6 +733,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - singbox_stable
+
     if: ${{ needs.singbox_stable.outputs.skip != 'true' }}
 
     strategy:
@@ -727,7 +756,20 @@ jobs:
         id: go
         shell: bash
         run: |
-          echo "version=$(curl -sSL https://raw.githubusercontent.com/SagerNet/sing-box/stable/.github/workflows/build.yml | grep 'go-version:' | awk 'NR==1 {print $2}')" >> "${GITHUB_OUTPUT}"
+          set -euo pipefail
+
+          version="$(
+            curl -fsSL \
+              https://raw.githubusercontent.com/SagerNet/sing-box/stable/.github/workflows/build.yml |
+            grep 'go-version:' |
+            head -n 1 |
+            awk '{print $2}'
+          )"
+
+          [[ -n "$version" ]]
+
+          echo "Go version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Setup Go
         uses: actions/setup-go@v7
@@ -791,6 +833,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - singbox_test
+
     if: ${{ needs.singbox_test.outputs.skip != 'true' }}
 
     strategy:
@@ -813,7 +856,20 @@ jobs:
         id: go
         shell: bash
         run: |
-          echo "version=$(curl -sSL https://raw.githubusercontent.com/SagerNet/sing-box/testing/.github/workflows/build.yml | grep 'go-version:' | awk 'NR==1 {print $2}')" >> "${GITHUB_OUTPUT}"
+          set -euo pipefail
+
+          version="$(
+            curl -fsSL \
+              https://raw.githubusercontent.com/SagerNet/sing-box/testing/.github/workflows/build.yml |
+            grep 'go-version:' |
+            head -n 1 |
+            awk '{print $2}'
+          )"
+
+          [[ -n "$version" ]]
+
+          echo "Go version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Setup Go
         uses: actions/setup-go@v7
@@ -916,7 +972,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          mkdir -p ./sing-box
+          mkdir -p ./sing-box ./package
 
           # ----------------------------------------------------
           # PuerNya
@@ -926,8 +982,6 @@ jobs:
               src="./tmp/puernya-${arch}/sing-box"
 
               if [[ -f "$src" ]]; then
-                mkdir -p ./package
-
                 cp -f "$src" ./package/sing-box
                 chmod +x ./package/sing-box
 
@@ -948,11 +1002,18 @@ jobs:
           if [[ "${{ needs.ref1nd_stable.outputs.skip }}" != "true" ]]; then
             for arch in amd64-v1 amd64-v3 armv7 arm64; do
               src="./tmp/ref1nd-stable-${arch}/sing-box"
-              dst="./sing-box/sing-box-ref1nd-stable-linux-${arch}.upx"
 
               if [[ -f "$src" ]]; then
-                cp -f "$src" "$dst"
-                chmod +x "$dst"
+                cp -f "$src" ./package/sing-box
+                chmod +x ./package/sing-box
+
+                tar \
+                  --no-same-owner \
+                  -czf "./sing-box/sing-box-ref1nd-stable-linux-${arch}.tar.gz" \
+                  -C ./package \
+                  sing-box
+
+                rm -f ./package/sing-box
               fi
             done
           fi
@@ -963,11 +1024,18 @@ jobs:
           if [[ "${{ needs.ref1nd_test.outputs.skip }}" != "true" ]]; then
             for arch in amd64-v1 amd64-v3 armv7 arm64; do
               src="./tmp/ref1nd-test-${arch}/sing-box"
-              dst="./sing-box/sing-box-ref1nd-test-linux-${arch}.upx"
 
               if [[ -f "$src" ]]; then
-                cp -f "$src" "$dst"
-                chmod +x "$dst"
+                cp -f "$src" ./package/sing-box
+                chmod +x ./package/sing-box
+
+                tar \
+                  --no-same-owner \
+                  -czf "./sing-box/sing-box-ref1nd-test-linux-${arch}.tar.gz" \
+                  -C ./package \
+                  sing-box
+
+                rm -f ./package/sing-box
               fi
             done
           fi
@@ -978,11 +1046,18 @@ jobs:
           if [[ "${{ needs.singbox_stable.outputs.skip }}" != "true" ]]; then
             for arch in amd64-v1 amd64-v3 armv7 arm64; do
               src="./tmp/singbox-stable-${arch}/sing-box"
-              dst="./sing-box/sing-box-stable-linux-${arch}.upx"
 
               if [[ -f "$src" ]]; then
-                cp -f "$src" "$dst"
-                chmod +x "$dst"
+                cp -f "$src" ./package/sing-box
+                chmod +x ./package/sing-box
+
+                tar \
+                  --no-same-owner \
+                  -czf "./sing-box/sing-box-stable-linux-${arch}.tar.gz" \
+                  -C ./package \
+                  sing-box
+
+                rm -f ./package/sing-box
               fi
             done
           fi
@@ -993,11 +1068,18 @@ jobs:
           if [[ "${{ needs.singbox_test.outputs.skip }}" != "true" ]]; then
             for arch in amd64-v1 amd64-v3 armv7 arm64; do
               src="./tmp/singbox-test-${arch}/sing-box"
-              dst="./sing-box/sing-box-test-linux-${arch}.upx"
 
               if [[ -f "$src" ]]; then
-                cp -f "$src" "$dst"
-                chmod +x "$dst"
+                cp -f "$src" ./package/sing-box
+                chmod +x ./package/sing-box
+
+                tar \
+                  --no-same-owner \
+                  -czf "./sing-box/sing-box-test-linux-${arch}.tar.gz" \
+                  -C ./package \
+                  sing-box
+
+                rm -f ./package/sing-box
               fi
             done
           fi
@@ -1005,10 +1087,11 @@ jobs:
           echo
           echo "最终 Release 文件："
 
-          if compgen -G "./sing-box/*" > /dev/null; then
+          if compgen -G "./sing-box/*.tar.gz" > /dev/null; then
             find ./sing-box \
               -maxdepth 1 \
               -type f \
+              -name '*.tar.gz' \
               -printf '%f\n' |
             sort
           else
@@ -1020,7 +1103,7 @@ jobs:
       # Release
       # ========================================================
       - name: Release
-        if: ${{ hashFiles('./sing-box/*') != '' }}
+        if: ${{ hashFiles('./sing-box/*.tar.gz') != '' }}
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
@@ -1028,7 +1111,7 @@ jobs:
           tag: sing-box
           overwrite: true
           file_glob: true
-          file: ./sing-box/*
+          file: ./sing-box/*.tar.gz
 
           body: |
             # 📝 Release Notes
@@ -1090,8 +1173,25 @@ jobs:
           ## sing-box reF1nd-Stable 版
 
           ```bash
-          curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-ref1nd-stable-linux-amd64-v3.upx -o /usr/local/bin/sing-box
-          chmod +x /usr/local/bin/sing-box
+          curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-ref1nd-stable-linux-amd64-v3.tar.gz | tar -zx -C /usr/local/bin
+          ```
+
+          ## sing-box reF1nd-Test 版
+
+          ```bash
+          curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-ref1nd-test-linux-amd64-v3.tar.gz | tar -zx -C /usr/local/bin
+          ```
+
+          ## sing-box Stable 版
+
+          ```bash
+          curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-stable-linux-amd64-v3.tar.gz | tar -zx -C /usr/local/bin
+          ```
+
+          ## sing-box Test 版
+
+          ```bash
+          curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-test-linux-amd64-v3.tar.gz | tar -zx -C /usr/local/bin
           ```
 
           ## 支持架构
