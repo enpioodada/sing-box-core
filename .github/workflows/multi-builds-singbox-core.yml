@@ -40,9 +40,11 @@ jobs:
         run: |
           set -euo pipefail
 
-          version=$(curl -fsSL \
-            https://raw.githubusercontent.com/actions/go-versions/update-versions-manifest-file/versions-manifest.json |
-            jq -r '.[0].version')
+          version=$(
+            curl -fsSL \
+              https://raw.githubusercontent.com/actions/go-versions/update-versions-manifest-file/versions-manifest.json |
+            jq -r '.[0].version'
+          )
 
           if [[ -z "$version" || "$version" == "null" ]]; then
             echo "无法获取 Go 版本"
@@ -231,7 +233,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # 必须在任何 exit/break 之前写入 GITHUB_OUTPUT
           linux_tags="with_quic,with_utls,with_clash_api"
           windows_tags="with_gvisor,with_quic,with_utls,with_clash_api,with_tailscale"
 
@@ -427,7 +428,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # 必须在 break/exit 之前写入
           linux_tags="with_quic,with_utls,with_clash_api"
           windows_tags="with_gvisor,with_quic,with_utls,with_clash_api,with_tailscale"
 
@@ -435,45 +435,52 @@ jobs:
           echo "ref1nd_test_windows_tags=$windows_tags" >> "$GITHUB_OUTPUT"
 
           while true; do
+            found=false
 
-            releases=$(curl -fsSL \
-              "https://api.github.com/repos/reF1nd/sing-box/releases?per_page=100")
+            for page in {1..5}; do
 
-            version=$(
-              jq -r '
-                .[]
-                | .tag_name
-                | select(test("^v[0-9].*(alpha|beta|rc).*\\-reF1nd"))
-              ' <<< "$releases" |
-              head -n 1 || true
-            )
+              tags=$(curl -fsSL \
+                "https://api.github.com/repos/reF1nd/sing-box/tags?per_page=100&page=${page}")
 
-            if [[ -n "$version" && "$version" != "null" ]]; then
-
-              version="${version#v}"
-
-              echo "找到 reF1nd-Test: $version"
-
-              commit_date=$(
-                curl -fsSL \
-                  "https://api.github.com/repos/reF1nd/sing-box/commits/v${version}" |
-                jq -r '.commit.committer.date'
+              version=$(
+                jq -r '.[].name' <<< "$tags" |
+                grep -m1 -E '^v[0-9]+\.[0-9]+\.[0-9]+.*(alpha|beta|rc).*-[Rr]eF1nd' || true
               )
 
-              if [[ -z "$commit_date" || "$commit_date" == "null" ]]; then
-                echo "无法获取 reF1nd-Test 发布时间"
-                exit 1
+              if [[ -n "$version" && "$version" != "null" ]]; then
+
+                version="${version#v}"
+
+                echo "找到 reF1nd-Test: $version"
+
+                commit_date=$(
+                  curl -fsSL \
+                    "https://api.github.com/repos/reF1nd/sing-box/commits/v${version}" |
+                  jq -r '.commit.committer.date'
+                )
+
+                if [[ -z "$commit_date" || "$commit_date" == "null" ]]; then
+                  echo "无法获取 reF1nd-Test 发布时间"
+                  exit 1
+                fi
+
+                time=$(date -d "$commit_date +8 hours" '+%Y-%m-%d')
+
+                echo "ref1nd_test_version=$version" >> "$GITHUB_OUTPUT"
+                echo "ref1nd_test_time=$time" >> "$GITHUB_OUTPUT"
+
+                found=true
+                break
               fi
 
-              time=$(date -d "$commit_date +8 hours" '+%Y-%m-%d')
+              echo "第 ${page} 页没有找到 reF1nd-Test"
+            done
 
-              echo "ref1nd_test_version=$version" >> "$GITHUB_OUTPUT"
-              echo "ref1nd_test_time=$time" >> "$GITHUB_OUTPUT"
-
+            if [[ "$found" == "true" ]]; then
               break
             fi
 
-            echo "未获取到 reF1nd-Test，10 秒后重试..."
+            echo "暂时没有找到 reF1nd-Test，10 秒后重试..."
             sleep 10
           done
 
@@ -965,18 +972,6 @@ jobs:
 
   # ============================================================
   # Release
-  #
-  # 严格要求：
-  #
-  # 五个版本分别满足：
-  #
-  #   version job 成功
-  #   AND
-  #   (skip_update == true OR cross == success)
-  #
-  # 任意实际构建失败：
-  #     不 Release
-  #     不更新 README
   # ============================================================
   push_sing-box:
     runs-on: ubuntu-latest
@@ -1060,9 +1055,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # --------------------------------------------------------
-      # 下载当前运行产生的全部 artifacts
-      # --------------------------------------------------------
       - name: Download artifacts
         if: >
           ${{
@@ -1088,7 +1080,6 @@ jobs:
           mkdir -p ./sing-box
 
           for arch in amd64 armv7 arm64; do
-
             src="./tmp/sing-box-puernya-linux-${arch}/sing-box"
 
             test -f "$src"
@@ -1101,7 +1092,6 @@ jobs:
               -czf "./sing-box/sing-box-puernya-linux-${arch}.tar.gz" \
               -C ./tmp \
               sing-box
-
           done
 
 
@@ -1288,9 +1278,6 @@ jobs:
 
       # ========================================================
       # 最终检查
-      #
-      # 如果需要更新：
-      #   必须存在构建后的文件
       # ========================================================
       - name: Check sing-box files
         id: check
@@ -1310,14 +1297,6 @@ jobs:
 
       # ========================================================
       # Release
-      #
-      # push_sing-box 本身只有在：
-      # 五个版本全部成功/无需更新
-      #
-      # 的情况下才会进入。
-      #
-      # 如果五个版本全部无需更新：
-      # 不创建空 Release。
       # ========================================================
       - name: Release and upload sing-box assets
         if: ${{ steps.check.outputs.singbox_exist == 'true' }}
@@ -1347,17 +1326,6 @@ jobs:
 
   # ============================================================
   # README
-  #
-  # 只有 push_sing-box 成功以后才允许执行
-  #
-  # 因此：
-  #
-  # 任意版本构建失败
-  #        ↓
-  # push_sing-box 不执行
-  #        ↓
-  # README 不执行
-  #
   # ============================================================
   Update_Readme:
     runs-on: ubuntu-latest
