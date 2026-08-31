@@ -24,7 +24,7 @@ chmod +x /usr/local/bin/sing-box
 
 1. 更新 [sing-box PuerNya 版](https://github.com/PuerNya/sing-box/tree/building) 至 v1.10.0-alpha.29-067c81a73，发布于 2024-08-16
 
-2. 更新 [sing-box reF1nd-Stable 版](https://github.com/reF1nd/sing-box/tree/reF1nd-stable) 至 v1.13.21-reF1nd，发布于 2026-09-01
+2. 更新 [sing-box reF1nd-Stable 版](https://github.com/reF1nd/sing-box/tree/reF1nd-stable) 至 v1.14.0-reF1nd，发布于 2026-09-01
 
 3. 更新 [sing-box reF1nd-Test 版](https://github.com/reF1nd/sing-box/tree/reF1nd-testing) 至 v1.14.0-rc.4-reF1nd，发布于 2026-08-30
 
