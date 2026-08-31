@@ -9,8 +9,25 @@ curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/s
 ## sing-box reF1nd-Stable 版
 
 ```bash
-curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-ref1nd-stable-linux-amd64-v3.upx -o /usr/local/bin/sing-box
-chmod +x /usr/local/bin/sing-box
+curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-ref1nd-stable-linux-amd64-v3.tar.gz | tar -zx -C /usr/local/bin
+```
+
+## sing-box reF1nd-Test 版
+
+```bash
+curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-ref1nd-test-linux-amd64-v3.tar.gz | tar -zx -C /usr/local/bin
+```
+
+## sing-box Stable 版
+
+```bash
+curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-stable-linux-amd64-v3.tar.gz | tar -zx -C /usr/local/bin
+```
+
+## sing-box Test 版
+
+```bash
+curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-test-linux-amd64-v3.tar.gz | tar -zx -C /usr/local/bin
 ```
 
 ## 支持架构
