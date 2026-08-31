@@ -1,16 +1,24 @@
-# Sing-Box核心编译
+# Sing-Box 核心编译
 
-## sing-box 内核 PuerNya 版
-
-```bash
-curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-puernya-linux-amd64.tar.gz | tar -zx -C /usr/local/bin
-```
-
-## sing-box 内核 reF1nd-Stable 版
+## sing-box PuerNya 版
 
 ```bash
-curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-ref1nd-stable-linux-amd64-v3.tar.gz | tar -zx -C /usr/local/bin
+curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-puernya-linux-amd64-v1.tar.gz | tar -zx -C /usr/local/bin
 ```
+
+## sing-box reF1nd-Stable 版
+
+```bash
+curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-ref1nd-stable-linux-amd64-v3.upx -o /usr/local/bin/sing-box
+chmod +x /usr/local/bin/sing-box
+```
+
+## 支持架构
+
+- amd64-v1
+- amd64-v3
+- armv7
+- arm64
 
 ## Changelog
 
