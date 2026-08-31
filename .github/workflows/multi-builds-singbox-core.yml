@@ -555,19 +555,8 @@ jobs:
         id: go
         shell: bash
         run: |
-          set -euo pipefail
-
-          version="$(
-            curl -fsSL \
-              https://raw.githubusercontent.com/reF1nd/sing-box/reF1nd-stable/.github/workflows/build.yml |
-            grep -m1 'go-version:' |
-            awk '{print $2}'
-          )"
-
-          [[ -n "$version" ]]
-
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-
+          echo "version=$(curl -sSL https://raw.githubusercontent.com/reF1nd/sing-box/reF1nd-stable/.github/workflows/build.yml | grep 'go-version:' | awk 'NR==1 {print $2}')" >> "${GITHUB_OUTPUT}"
+          
       - name: Setup Go
         uses: actions/setup-go@v7
         with:
@@ -652,18 +641,7 @@ jobs:
         id: go
         shell: bash
         run: |
-          set -euo pipefail
-
-          version="$(
-            curl -fsSL \
-              https://raw.githubusercontent.com/reF1nd/sing-box/reF1nd-testing/.github/workflows/build.yml |
-            grep -m1 'go-version:' |
-            awk '{print $2}'
-          )"
-
-          [[ -n "$version" ]]
-
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "version=$(curl -sSL https://raw.githubusercontent.com/reF1nd/sing-box/reF1nd-testing/.github/workflows/build.yml | grep 'go-version:' | awk 'NR==1 {print $2}')" >> "${GITHUB_OUTPUT}"          
 
       - name: Setup Go
         uses: actions/setup-go@v7
@@ -749,18 +727,7 @@ jobs:
         id: go
         shell: bash
         run: |
-          set -euo pipefail
-
-          version="$(
-            curl -fsSL \
-              https://raw.githubusercontent.com/SagerNet/sing-box/stable/.github/workflows/build.yml |
-            grep -m1 'go-version:' |
-            awk '{print $2}'
-          )"
-
-          [[ -n "$version" ]]
-
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "version=$(curl -sSL https://raw.githubusercontent.com/SagerNet/sing-box/stable/.github/workflows/build.yml | grep 'go-version:' | awk 'NR==1 {print $2}')" >> "${GITHUB_OUTPUT}"
 
       - name: Setup Go
         uses: actions/setup-go@v7
@@ -846,18 +813,7 @@ jobs:
         id: go
         shell: bash
         run: |
-          set -euo pipefail
-
-          version="$(
-            curl -fsSL \
-              https://raw.githubusercontent.com/SagerNet/sing-box/testing/.github/workflows/build.yml |
-            grep -m1 'go-version:' |
-            awk '{print $2}'
-          )"
-
-          [[ -n "$version" ]]
-
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "version=$(curl -sSL https://raw.githubusercontent.com/SagerNet/sing-box/testing/.github/workflows/build.yml | grep 'go-version:' | awk 'NR==1 {print $2}')" >> "${GITHUB_OUTPUT}"
 
       - name: Setup Go
         uses: actions/setup-go@v7
