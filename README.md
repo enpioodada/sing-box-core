@@ -2,13 +2,13 @@
 
 ## sing-box 内核 PuerNya 版
 
-```
+```bash
 curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-puernya-linux-amd64.tar.gz | tar -zx -C /usr/local/bin
 ```
 
 ## sing-box 内核 reF1nd-Stable 版
 
-```
+```bash
 curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/sing-box-ref1nd-stable-linux-amd64-v3.tar.gz | tar -zx -C /usr/local/bin
 ```
 
