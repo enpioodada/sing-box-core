@@ -28,6 +28,6 @@ chmod +x /usr/local/bin/sing-box
 
 3. 更新 [sing-box reF1nd-Test 版](https://github.com/reF1nd/sing-box/tree/reF1nd-testing) 至 v1.14.0-rc.4-reF1nd，发布于 2026-08-30
 
-4. 更新 [sing-box Stable 版](https://github.com/SagerNet/sing-box/tree/stable) 至 v1.14.0，发布于 2026-08-31
+4. 更新 [sing-box Stable 版](https://github.com/SagerNet/sing-box/tree/stable) 至 v，发布于 
 
 5. 更新 [sing-box Test 版](https://github.com/SagerNet/sing-box/tree/testing) 至 v1.14.0-rc.5，发布于 2026-08-30
