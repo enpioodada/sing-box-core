@@ -555,7 +555,7 @@ jobs:
         id: go
         shell: bash
         run: |
-          echo "version=$(curl -sSL https://raw.githubusercontent.com/reF1nd/sing-box/reF1nd-stable/.github/workflows/build.yml | grep 'go-version:' | awk 'NR==1 {print $2}')" >> "${GITHUB_OUTPUT}"
+          echo "version=$(curl -sSL https://raw.githubusercontent.com/reF1nd/sing-box/reF1nd-stable/.github/workflows/build.yml | grep 'go-version:' | head -n 1 | awk '{print $2}')" >> "${GITHUB_OUTPUT}"
           
       - name: Setup Go
         uses: actions/setup-go@v7
