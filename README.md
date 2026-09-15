@@ -41,9 +41,9 @@ curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/s
 
 1. 更新 [sing-box PuerNya 版](https://github.com/PuerNya/sing-box/tree/building) 至 v1.10.0-alpha.29-067c81a73，发布于 2024-08-16
 
-2. 更新 [sing-box reF1nd-Stable 版](https://github.com/reF1nd/sing-box/tree/reF1nd-stable) 至 v1.14.0-reF1nd，发布于 2026-09-01
+2. 更新 [sing-box reF1nd-Stable 版](https://github.com/reF1nd/sing-box/tree/reF1nd-stable) 至 v，发布于 
 
-3. 更新 [sing-box reF1nd-Test 版](https://github.com/reF1nd/sing-box/tree/reF1nd-testing) 至 v1.15.0-alpha.3-reF1nd，发布于 2026-09-13
+3. 更新 [sing-box reF1nd-Test 版](https://github.com/reF1nd/sing-box/tree/reF1nd-testing) 至 v1.15.0-alpha.4-reF1nd，发布于 2026-09-15
 
 4. 更新 [sing-box Stable 版](https://github.com/SagerNet/sing-box/tree/stable) 至 v1.14.1，发布于 2026-09-15
 
