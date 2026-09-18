@@ -47,4 +47,4 @@ curl -L https://github.com/enpioodada/sing-box-core/releases/download/sing-box/s
 
 4. 更新 [sing-box Stable 版](https://github.com/SagerNet/sing-box/tree/stable) 至 v1.14.1，发布于 2026-09-15
 
-5. 更新 [sing-box Test 版](https://github.com/SagerNet/sing-box/tree/testing) 至 v1.15.0-alpha.5，发布于 2026-09-16
+5. 更新 [sing-box Test 版](https://github.com/SagerNet/sing-box/tree/testing) 至 v1.15.0-alpha.6，发布于 2026-09-18
